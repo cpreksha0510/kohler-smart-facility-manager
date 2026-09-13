@@ -1,0 +1,9 @@
+[theme]
+# Streamlit's built-in theme layer — controls components CSS can't reach:
+# slider thumb, radio selected state, progress bar fill, text input focus border.
+# CSS injection in dashboard.py handles everything else.
+primaryColor           = "#3FA9A0"
+backgroundColor        = "#12161A"
+secondaryBackgroundColor = "#1B2127"
+textColor              = "#E7ECEE"
+font                   = "sans serif"
