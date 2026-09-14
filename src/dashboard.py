@@ -5,8 +5,8 @@ Design system:
   Background     #12161A   deep graphite
   Surface        #1B2127   cards, table rows, sidebar
   Surface-2      #222830   table header, hover state
-  Accent (water) #3FA9A0   primary: active states, charts, borders
-  Accent (brass) #B98D4F   one use only: sidebar section heading
+  Primary UI     #6B8CAE   muted slate-blue: active states, charts, buttons
+  Secondary      #B08D57   muted warm brass: flagged tickets attention
   Text primary   #E7ECEE
   Text muted     #8A97A0
   Severity       Critical #E4572E / High #F0A202 / Medium #D9B44A / Low #5B6770
@@ -45,7 +45,7 @@ from src.icons import icon
 
 # ── Streamlit page config ─────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="KOHLER facility monitor",
+    page_title="KOHLER Facility Monitor",
     page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
@@ -53,14 +53,15 @@ st.set_page_config(
 
 # ── Design constants ──────────────────────────────────────────────────────────
 
-# Fixture line colors: cool teal-to-blue-grey palette, anchored at the
-# water accent. Sink_01 is brightest — it carries the sustained leak.
+# Fixture line colors: distinct muted, desaturated palette sharing balanced
+# lightness (~50–56%) and low saturation (~25–35%) so every line is identifiable
+# without glowing or competing with severity alerts.
 FIXTURE_COLORS: dict[str, str] = {
-    "Sink_01":   "#3FA9A0",   # water teal — hero fixture
-    "Sink_02":   "#7BBFBA",   # lighter teal
-    "Sink_03":   "#5E8B8B",   # muted teal-grey
-    "Toilet_01": "#8297A3",   # cool blue-grey
-    "Toilet_02": "#5A7080",   # dark blue-grey
+    "Sink_01":   "#6B8CAE",   # muted slate blue — hero fixture (sustained leak)
+    "Sink_02":   "#789A8B",   # muted sage green
+    "Sink_03":   "#9A8B78",   # muted warm taupe
+    "Toilet_01": "#847E9C",   # muted dusty lavender
+    "Toilet_02": "#B08D57",   # muted warm brass (slow drip)
 }
 
 # Severity → icon name
@@ -107,23 +108,25 @@ MAX_TICKETS_SHOWN = 100   # cap table rows to avoid DOM overload
 
 _CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 /* ── Design tokens ── */
 :root {
-  --bg:           #12161A;
-  --surface:      #1B2127;
-  --surface-2:    #222830;
-  --accent-water: #3FA9A0;
-  --accent-brass: #B98D4F;
-  --text-primary: #E7ECEE;
-  --text-muted:   #8A97A0;
-  --border:       rgba(255,255,255,0.07);
-  --sev-critical: #E4572E;
-  --sev-high:     #F0A202;
-  --sev-medium:   #D9B44A;
-  --sev-low:      #5B6770;
-  --r:            2px;
+  --bg:             #12161A;
+  --surface:        #1B2127;
+  --surface-2:      #222830;
+  --accent-primary: #6B8CAE;   /* muted slate-blue: primary UI actions & charts */
+  --accent-water:   #6B8CAE;   /* alias for backward compatibility */
+  --accent-brass:   #B08D57;   /* muted warm brass: attention indicator */
+  --text-primary:   #E7ECEE;
+  --text-muted:     #8A97A0;
+  --border:         rgba(255,255,255,0.07);
+  --border-strong:  rgba(255,255,255,0.18);
+  --sev-critical:   #E4572E;
+  --sev-high:       #F0A202;
+  --sev-medium:     #D9B44A;
+  --sev-low:        #5B6770;
+  --r:              2px;
 }
 
 /* ── Base ── */
@@ -175,8 +178,8 @@ hr {
 }
 [data-testid="stButton"] > button:hover,
 [data-testid="stButton"] > button:focus {
-  border-color: var(--accent-water) !important;
-  color: var(--accent-water) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -249,27 +252,48 @@ hr {
 
 /* ── Page header ── */
 .page-header {
-  padding-bottom: 1rem;
-  margin-bottom: 1.25rem;
+  overflow: visible !important;
+  padding-top: 0.75rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.35rem;
   border-bottom: 1px solid var(--border);
 }
-.page-header h1 {
-  font-family: 'Fraunces', serif;
-  font-size: 1.5rem;
-  font-weight: 400;
-  letter-spacing: -0.03em;
+[data-testid="stMarkdownContainer"]:has(.page-header) {
+  overflow: visible !important;
+}
+.brand-title {
+  display: block;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  padding-top: 4px;
   color: var(--text-primary);
-  margin: 0 0 0.15rem;
-  line-height: 1.1;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem;
+  overflow: visible !important;
+}
+.brand-subtitle {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--text-muted);
+  margin: 0 0 0.55rem;
+  overflow: visible !important;
 }
 .page-header .sub {
   font-family: 'IBM Plex Sans', sans-serif;
   font-size: 0.78rem;
+  line-height: 1.4;
   color: var(--text-muted);
 }
 .page-header .sys-time {
   font-family: 'IBM Plex Mono', monospace;
-  color: var(--accent-water);
+  color: var(--accent-primary);
 }
 
 /* ── Section label ── */
@@ -297,14 +321,38 @@ hr {
 .metric-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent-water);
   border-radius: var(--r);
   padding: 0.9rem 1.2rem 0.85rem;
 }
+/* Neutral metrics (sensor readings, zones monitored) */
+.metric-card.metric-neutral {
+  border-left: 1px solid var(--border);
+}
+.metric-card.metric-neutral .metric-icon {
+  color: #6B7C8C;
+  opacity: 0.85;
+}
+
+/* Attention metric (flagged tickets) */
+.metric-card.metric-attention {
+  border-left: 3px solid var(--accent-brass);
+}
+.metric-card.metric-attention .metric-icon {
+  color: var(--accent-brass);
+  opacity: 0.9;
+}
+
+/* Primary metric (water loss) */
+.metric-card.metric-primary {
+  border-left: 3px solid var(--accent-primary);
+}
+.metric-card.metric-primary .metric-icon {
+  color: var(--accent-primary);
+  opacity: 0.9;
+}
+
 .metric-icon {
-  color: var(--accent-water);
   margin-bottom: 0.55rem;
-  opacity: 0.7;
   line-height: 1;
 }
 .metric-value {
@@ -342,7 +390,7 @@ hr {
   overflow: hidden;
 }
 .custom-progress-fill {
-  background: var(--accent-water);
+  background: var(--accent-primary);
   height: 3px;
   border-radius: 1px;
   transition: width 0.3s ease;
@@ -445,12 +493,34 @@ hr {
   font-family: 'IBM Plex Sans', sans-serif;
   font-size: 1.55rem;
   font-weight: 500;
-  color: var(--accent-water);
+  color: var(--accent-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
 /* ── Sidebar internals ── */
+.sidebar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 0.2rem;
+}
+.sidebar-brand .brand-bold {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+.sidebar-heading {
+  font-family: 'Fraunces', serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--accent-brass);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
 .zone-item {
   display: flex;
   align-items: center;
@@ -464,16 +534,8 @@ hr {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--accent-water);
+  background: var(--accent-primary);
   flex-shrink: 0;
-}
-.sidebar-heading {
-  font-family: 'Fraunces', serif;
-  font-size: 0.9rem;
-  font-weight: 300;
-  color: var(--accent-brass);
-  letter-spacing: 0.01em;
-  margin: 0 0 0.15rem;
 }
 .sidebar-sub {
   font-family: 'IBM Plex Sans', sans-serif;
@@ -500,7 +562,7 @@ hr {
   border-radius: 2px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.82rem;
-  color: var(--accent-water);
+  color: var(--accent-primary);
 }
 </style>
 """
@@ -539,10 +601,10 @@ def load_data(up_to_ts: datetime.datetime = None):
 
 # ── HTML component builders ───────────────────────────────────────────────────
 
-def _metric_card(icon_name: str, value: str, label: str) -> str:
-    """Build one metric card HTML block."""
+def _metric_card(icon_name: str, value: str, label: str, variant: str = "neutral") -> str:
+    """Build one metric card HTML block. variant: 'neutral', 'attention', 'primary'."""
     return (
-        f'<div class="metric-card">'
+        f'<div class="metric-card metric-{variant}">'
         f'<div class="metric-icon">{icon(icon_name, 18)}</div>'
         f'<div class="metric-value">{value}</div>'
         f'<div class="metric-label">{label}</div>'
@@ -561,12 +623,15 @@ def render_metrics(readings: pd.DataFrame, tickets: pd.DataFrame) -> None:
         else "0 L"
     )
 
+    ticket_variant = "attention" if len(tickets) > 0 else "neutral"
+    water_variant  = "primary" if not tickets.empty else "neutral"
+
     html = (
         '<div class="metric-row">'
-        + _metric_card("activity", n_readings,  "sensor readings")
-        + _metric_card("list",     n_tickets,   "flagged tickets")
-        + _metric_card("building", n_zones,     "zones monitored")
-        + _metric_card("drop",     water_loss,  "estimated water loss")
+        + _metric_card("activity", n_readings,  "sensor readings",     variant="neutral")
+        + _metric_card("list",     n_tickets,   "flagged tickets",    variant=ticket_variant)
+        + _metric_card("building", n_zones,     "zones monitored",    variant="neutral")
+        + _metric_card("drop",     water_loss,  "estimated water loss", variant=water_variant)
         + '</div>'
     )
     st.markdown(html, unsafe_allow_html=True)
@@ -732,13 +797,13 @@ def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None) -> go.Fig
         plot_bgcolor="#12161A",
         font=dict(family="IBM Plex Sans", color="#8A97A0", size=11),
         xaxis=dict(
-            showgrid=True, gridcolor="rgba(255,255,255,0.05)",
+            showgrid=True, gridcolor="rgba(107, 140, 174, 0.07)",
             zeroline=False, showline=False,
             tickfont=dict(family="IBM Plex Sans", size=10, color="#8A97A0"),
             title=None,
         ),
         yaxis=dict(
-            showgrid=True, gridcolor="rgba(255,255,255,0.05)",
+            showgrid=True, gridcolor="rgba(107, 140, 174, 0.07)",
             zeroline=False, showline=False,
             tickfont=dict(family="IBM Plex Sans", size=10, color="#8A97A0"),
             title=dict(text="L/min", font=dict(size=10, color="#8A97A0")),
@@ -749,8 +814,10 @@ def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None) -> go.Fig
             borderwidth=1,
             font=dict(family="IBM Plex Sans", size=10, color="#8A97A0"),
             orientation="h",
-            yanchor="bottom", y=1.01,
-            xanchor="left", x=0,
+            yanchor="top",
+            y=-0.14,
+            xanchor="left",
+            x=0,
         ),
         hovermode="x unified",
         hoverlabel=dict(
@@ -758,8 +825,8 @@ def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None) -> go.Fig
             bordercolor="rgba(255,255,255,0.1)",
             font=dict(family="IBM Plex Sans", size=11, color="#E7ECEE"),
         ),
-        height=360,
-        margin=dict(l=0, r=0, t=44, b=0),
+        height=370,
+        margin=dict(l=0, r=0, t=32, b=52),
     )
     return fig
 
@@ -779,7 +846,7 @@ def build_heatmap(readings: pd.DataFrame) -> go.Figure:
     fig = px.imshow(
         pivot,
         labels=dict(x="Hour of day", y="Fixture", color="Avg occupancy"),
-        color_continuous_scale=[[0, "#12161A"], [0.4, "#1B4045"], [1, "#3FA9A0"]],
+        color_continuous_scale=[[0, "#12161A"], [0.35, "#1B242E"], [0.7, "#3B526B"], [1, "#6B8CAE"]],
         aspect="auto",
         zmin=0, zmax=1,
     )
@@ -810,7 +877,10 @@ def build_heatmap(readings: pd.DataFrame) -> go.Figure:
 def render_sidebar() -> str:
     with st.sidebar:
         st.markdown(
-            '<p class="sidebar-heading">Facility monitor</p>'
+            '<div class="sidebar-brand">'
+            '<span class="brand-bold">KOHLER</span>'
+            '<span class="sidebar-heading">Facility Monitor</span>'
+            '</div>'
             '<p class="sidebar-sub">Terminal 2 · airport restroom block</p>',
             unsafe_allow_html=True,
         )
@@ -862,10 +932,11 @@ def render_header() -> None:
     now_str = datetime.datetime.now().strftime("%H:%M:%S")
     st.markdown(
         f'<div class="page-header">'
-        f'<h1>KOHLER facility monitor</h1>'
-        f'<span class="sub">Terminal 2 &nbsp;&middot;&nbsp; airport restroom block '
+        f'<div class="brand-title">KOHLER</div>'
+        f'<div class="brand-subtitle">Facility Monitor</div>'
+        f'<div class="sub">Terminal 2 &nbsp;&middot;&nbsp; airport restroom block '
         f'&nbsp;&middot;&nbsp; Jan 15&ndash;16, 2024'
-        f'&nbsp;&nbsp;<span class="sys-time">{now_str}</span></span>'
+        f'&nbsp;&nbsp;<span class="sys-time">{now_str}</span></div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -910,7 +981,7 @@ def render_full_dataset() -> None:
     )
     st.plotly_chart(
         build_flow_chart(readings, zone_filter=active_zones),
-        use_container_width=True,
+        width="stretch",
         config={"displayModeBar": False},
     )
 
@@ -918,7 +989,7 @@ def render_full_dataset() -> None:
     with st.expander("Occupancy pattern by hour of day", expanded=False):
         st.plotly_chart(
             build_heatmap(readings),
-            use_container_width=True,
+            width="stretch",
             config={"displayModeBar": False},
         )
 
@@ -1003,7 +1074,7 @@ def render_replay() -> None:
         )
         st.plotly_chart(
             build_flow_chart(readings),
-            use_container_width=True,
+            width="stretch",
             config={"displayModeBar": False},
         )
 

@@ -79,4 +79,112 @@
 
 ---
 
+### Prompt 4 — Muted, Desaturated Palette & KOHLER Brand Anchor
+**Date:** 2024-01-15  
+**Prompt given:**
+> The current dashboard uses one bright teal for almost everything (icons, metric numbers, input chips, chart lines) which reads as monotonous. I want a few muted, desaturated colors used deliberately for different roles — not all the same color, but not bright/neon either. Keep the dark control-room background as-is.
+> 
+> Specifically:
+> 1. Restore "KOHLER" as bold text in the top-left, above or next to "facility monitor" (like the previous version had), as the actual brand anchor of the page.
+> 2. Replace the single bright teal with a muted, low-saturation palette:
+>    - A muted slate-blue (around #6B8CAE) for primary UI elements (icons, active nav state, chart gridlines/axis)
+>    - A muted warm brass/gold (around #B08D57) as a secondary accent — use this for one distinct thing, like the "flagged tickets" metric or an active zone selector, so it doesn't compete with the primary color
+>    - Keep sensor reading and zone-monitored metrics in a neutral muted gray-blue, not colored at all — only the metrics that indicate something needs attention should carry color
+> 3. For the flow-rate chart specifically, give each fixture line a distinct muted color (not all teal) — e.g. muted blue, muted brass, muted sage green — so multiple lines are visually distinguishable without being bright.
+> 4. Reserve fully saturated colors ONLY for severity status once tickets are implemented in Phase 2 (red for Critical, amber for High, muted yellow for Medium, gray for Low) — nothing else on the page should compete with those colors in intensity, so alerts actually stand out against an otherwise calm, muted interface.
+> 5. Don't touch layout, icons, or the emoji removal — those are good. This is purely a color/branding pass.
+> 
+> Show me the specific hex values you plan to use before applying them.
+
+**What was built:**
+- Hex values submitted, reviewed, and approved via implementation plan.
+- `.streamlit/config.toml` updated with `primaryColor = "#6B8CAE"` so native widgets (slider thumbs, radio selections) automatically use muted slate-blue.
+- `src/dashboard.py` brand anchor: Added prominent bold uppercase `KOHLER` lockup (`font-weight: 700; letter-spacing: 0.08em;`) next to `/ facility monitor` in the page header and in the sidebar.
+- Semantic metric card tiers:
+  - Non-alert metrics ("sensor readings", "zones monitored"): Quiet neutral gray-blue borders and icons (`#4A5864` / `#6B7C8C`), uncolored.
+  - Action/alert metrics: "flagged tickets" highlighted with 3px left border and icon in warm brass (`#B08D57`); "estimated water loss" accented in muted slate-blue (`#6B8CAE`).
+- Fixture line palette in flow chart: 5 distinct desaturated, low-saturation (25–35%) tones:
+  - `Sink_01`: `#6B8CAE` (muted slate blue, 2.2px line carrying hero leak)
+  - `Sink_02`: `#789A8B` (muted sage green)
+  - `Sink_03`: `#9A8B78` (muted warm taupe)
+  - `Toilet_01`: `#847E9C` (muted dusty lavender)
+  - `Toilet_02`: `#B08D57` (muted warm brass, slow drip)
+- Chart canvas: Dark graphite `#12161A` with subtle gridlines in `rgba(107, 140, 174, 0.07)`.
+- Saturated colors strictly reserved for ticket severity stripes (`#E4572E`, `#F0A202`, `#D9B44A`, `#5B6770`).
+- Streamlit deprecation warning resolved: replaced `use_container_width=True` with `width="stretch"`.
+
+---
+
+### Prompt 5 — Header Restructure, Legend Spacing & Heatmap Palette
+**Date:** 2024-01-15  
+**Prompt given:**
+> A few fixes needed on the current dashboard:
+> 1. HEADER LAYOUT BUG: The "KOHLER / facility monitor" header text is currently clipped/overlapping — "KOHLER" appears cut off at the top and collides with "facility monitor" next to it. Fix this by restructuring the header entirely:
+>    - "KOHLER" on its own line — bold, larger size (this is the primary brand anchor of the page, should be the most prominent text at the top)
+>    - "facility monitor" directly below it, on its own line, smaller and lighter weight (not bold, secondary to KOHLER)
+>    - Remove the "/" separator between them since they're now stacked, not inline
+>    - Make sure there's enough line-height/padding so nothing clips regardless of browser zoom or window size
+> 2. LEGEND OVERLAPPING CHART TITLE: On both the "flow rate over time" chart and the "replay demo" graph, the series legend (e.g. "Sink_01 (Restroom_A) — Sink_02..." ) is overlapping/crashing into the chart's title text above it. Fix the layout so the legend has its own clear space — either wrap it below the title with proper margin, or move it to a side/bottom position on the chart itself so it never collides with the title regardless of how many series are selected.
+> 3. HEATMAP COLOR MISMATCH: The "Occupancy pattern by hour of day" heatmap is still using a bright teal gradient that doesn't match the muted slate-blue/brass palette we just applied elsewhere. Restyle the heatmap's color scale to use a muted gradient consistent with the rest of the dashboard — e.g. a low-saturation gradient from dark slate to muted slate-blue (matching the primary accent we defined earlier), not teal.
+> 4. Double check no other charts/components still have leftover bright teal from before the color pass — audit the full page for consistency.
+> 
+> Show me a screenshot or describe the layout change before finalizing, especially for the header restructure.
+
+**What was built:**
+- Header restructure:
+  - Stacked hierarchy with "KOHLER" prominently anchored on line 1 in bold uppercase sans (`font-weight: 700; font-size: 1.75rem; letter-spacing: 0.08em; line-height: 1.25;`).
+  - "facility monitor" positioned directly beneath on line 2 in lighter editorial serif (`Fraunces`, `font-weight: 300; font-size: 1.15rem; color: var(--text-muted);`).
+  - Removed "/" separator entirely; added ample vertical padding (`padding-top: 0.25rem; padding-bottom: 1.15rem;`) eliminating any clipping across all viewport sizes and zoom levels.
+- Chart legend collision resolution:
+  - Relocated series legend in `build_flow_chart()` from overlapping `y=1.01` to the bottom of the chart (`orientation="h", yanchor="top", y=-0.14, xanchor="left", x=0`) with `b=52` margin and `height=370`.
+  - Guarantees 100% collision-free space between chart title at top and fixture traces legend at bottom in both full dataset and replay modes.
+- Heatmap gradient alignment:
+  - Replaced bright teal scale (`#3FA9A0`) with low-saturation dark slate to slate-blue gradient: `[[0, "#12161A"], [0.35, "#1B242E"], [0.7, "#3B526B"], [1, "#6B8CAE"]]`.
+- Full-page audit:
+  - Confirmed 0 remaining instances of `#3FA9A0` in application code.
+  - Browser console verified with 0 errors and 0 warnings.
+
+---
+
+### Prompt 6 — Header Line-Height & Overflow Clipping Fix
+**Date:** 2024-01-15  
+**Prompt given:**
+> The "KOHLER" heading text is still visually clipped at the top — the tops of letters like K and R are being cut off. This is a CSS overflow/line-height issue, not a font-size issue — the container or line-height is too tight for the font size being used.
+> 
+> Please fix by:
+> 1. Checking whatever container (div, header, custom CSS class) wraps the "KOHLER" text for a fixed height or overflow: hidden — remove or increase it so it's not clipping content
+> 2. Increasing the line-height on that heading to at least 1.3–1.4x the font-size, not 1.0 or lower, so ascenders/descenders have room
+> 3. Adding a small amount of top padding to the heading's container if the clipping persists after the line-height fix
+> 4. Confirm this doesn't reintroduce the earlier overlap issue with "facility monitor" below it — there should be clear, non-overlapping space between them
+> 
+> Show me the exact CSS rule that was clipping it before you fix it, so I understand what caused it.
+
+**Root cause identified:**
+The clipping was caused by two interacting factors:
+1. `.brand-title` had `line-height: 1.25` on a `1.75rem` (28px) bold uppercase font (`font-weight: 700`). Because uppercase cap-height ascenders in IBM Plex Sans extend upward slightly beyond a tight 1.25 line box, the font bounds protruded past the top of the element box.
+2. Streamlit's wrapping container `[data-testid="stMarkdownContainer"]` and `.page-header` did not explicitly override Streamlit's default container overflow constraints, and `.page-header` only had `padding-top: 0.25rem` (4px).
+
+**What was built:**
+- Increased `line-height` on `.brand-title` from `1.25` to `1.4`.
+- Added explicit `padding-top: 4px;` and `margin: 0 0 0.25rem;` on `.brand-title`.
+- Added `overflow: visible !important;` to `.page-header`, `[data-testid="stMarkdownContainer"]:has(.page-header)`, and `.brand-title`.
+- Increased `.page-header` top padding to `0.75rem` and bottom padding to `1.25rem`.
+- Maintained clear, non-overlapping spacing between `KOHLER` and `facility monitor` (`margin: 0 0 0.55rem; line-height: 1.4;`).
+- Verified live in browser: letters K, O, H, L, E, R render cleanly with 0 clipped pixels.
+
+---
+
+### Prompt 7 — Title Case Branding ("Facility Monitor")
+**Date:** 2024-01-15  
+**Prompt given:**
+> Change "facility monitor" to "Facility Monitor" (title case) everywhere it appears on the page — both in the sidebar ("KOHLER facility monitor" → "KOHLER Facility Monitor") and in the main header below "KOHLER" ("facility monitor" → "Facility Monitor"). No other styling changes.
+
+**What was built:**
+- Updated browser document `page_title` in `st.set_page_config` to `"KOHLER Facility Monitor"`.
+- Updated sidebar brand lockup to `"KOHLER Facility Monitor"`.
+- Updated main page header line 2 directly below `KOHLER` to `"Facility Monitor"`.
+- Verified live in browser with zero console errors.
+
+---
+
 *(Add Phase 2 entries here when Phase 2 begins)*
