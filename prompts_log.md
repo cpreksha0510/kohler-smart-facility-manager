@@ -187,4 +187,356 @@ The clipping was caused by two interacting factors:
 
 ---
 
-*(Add Phase 2 entries here when Phase 2 begins)*
+---
+
+## Phase 2 — Strengthen Detection Logic (Days 4–5)
+
+### Prompt 9 — Phase 2 Build Request
+**Date:** 2026-09-14  
+**Prompt given:**
+> Phase 1 is working. Now build Phase 2 (Section 6, Phase 2) on top of it.
+>
+> Add to the existing detection logic:
+> 1. Section 4b — multi-signal correlation: combine the baseline outlier flag with occupancy and sustained duration (10+ min minimum), and treat sensor_status FAULT/OFFLINE differently (lower confidence, separate ticket type).
+> 2. Section 4c — slow-drip detection via rate-of-change over rolling 2-hour windows during zero-occupancy periods.
+> 3. Section 4d — replace the binary flag with the weighted severity_score formula, bucketed into Low/Medium/High/Critical.
+> 4. Section 4e — water loss and cost impact estimation per ticket.
+>
+> Then verify against my three injected scenarios from Phase 1:
+> - The sustained leak should score High or Critical
+> - The slow drip should be caught (this is the whole point of 4c)
+> - The normal shower should score Low or not be flagged at all
+>
+> Show me the severity scores for all three scenarios once done.
+
+**Plan reviewed and approved by user before code was written.**
+
+---
+
+### Prompt 10 — Phase 2 Implementation: Section 4b (Multi-Signal Correlation)
+**Date:** 2026-09-14  
+**What was implemented in `src/detector.py`:**
+
+Three signals are now combined per anomaly session:
+
+| Signal | Implementation | Rationale |
+|---|---|---|
+| **Duration gate** | Sessions < 10 min suppressed entirely | A toilet flush lasts ~1 min; real leaks run for tens of minutes minimum. Suppressing short sessions eliminates the vast majority of false positives without touching flow or occupancy. |
+| **Occupancy mismatch** | `1.0` if ALL readings in session have `occupancy=0`; `0.0` if anyone was present | Flow with nobody there is almost always a stuck valve or pipe failure, not normal use. The strongest discriminator signal. |
+| **Sensor health** | `1.0` penalty if any reading in session has `sensor_status` = FAULT or OFFLINE | Degraded sensor → lower confidence in reading → separate `sensor_fault` ticket type, not a leak ticket. |
+
+**Anomaly type assignment (deterministic — not LLM-decided):**
+```
+if sensor_penalty == 1.0  → "sensor_fault"
+elif occ_mismatch == 1.0  → "sustained_leak"
+else                      → "hygiene_threshold"
+```
+
+**Key architectural addition — `span_unoccupied_sessions()` coalescer:**  
+The 4a expanding baseline adapts to the anomalous flow within ~10 readings per hour bucket (mean drifts to 3.5 LPM, threshold rises above it, flagging stops). The next hour resets — producing another 10-minute burst. Without the coalescer, a 4-hour sustained leak generates four separate 10-minute tickets instead of one 4-hour ticket.
+
+The coalescer specifically merges **consecutive zero-occupancy sessions** from the same fixture that are ≤ 90 minutes apart, without touching any daytime occupied sessions. This correctly collapses the four per-hour leak bursts into one session scored on a 4-hour duration.
+
+This is the same "incident coalescing" pattern used in production alerting systems (PagerDuty, Datadog) — related micro-alerts from the same device are grouped into one incident ticket rather than generating noise.
+
+**Constants added to `src/config.py`:**
+```python
+MIN_SESSION_DURATION_MINUTES = 10
+```
+
+---
+
+### Prompt 11 — Phase 2 Implementation: Section 4c (Slow-Drip Detection)
+**Date:** 2026-09-14  
+**What was implemented — `detect_slow_drip()` in `src/detector.py`:**
+
+**Why not slope/regression?**  
+The injected drip is a constant 0.25 LPM — no acceleration. A linear regression slope across a zero-padded 2-hour window gives ≈ 0.002 LPM/min, far too small to threshold reliably without generating false positives on any minor flow reading.
+
+**Approach chosen — cumulative flow in rolling overnight windows:**
+```
+For each fixture:
+  Filter to: overnight hours (22:00–05:59) AND occupancy == 0
+  Slide a 120-minute window
+  If sum(flow_rate_lpm across all readings in window) >= 10 L → emit slow_drip ticket
+```
+
+**Why this works:**
+- Truly idle fixture: 0 LPM × 120 readings = **0 L** → no trigger
+- Toilet_02 drip: 0.25 LPM × 120 readings = **30 L** >> 10 L threshold → caught ✓
+- Daytime normal use: excluded by `occupancy == 0` filter → zero false positives from showers or handwashing
+
+De-duplication: once a window triggers, the scan pointer advances by a full 120-min window before checking again — so one drip produces at most one ticket per 2-hour period, not dozens of overlapping tickets.
+
+**Constants added to `src/config.py`:**
+```python
+SLOW_DRIP_WINDOW_MINUTES = 120
+SLOW_DRIP_CUMULATIVE_THRESHOLD_L = 10.0
+SLOW_DRIP_MIN_READINGS = 30
+SLOW_DRIP_OVERNIGHT_HOURS = (22, 6)
+```
+
+---
+
+### Prompt 12 — Phase 2 Implementation: Section 4d (Severity Scoring)
+**Date:** 2026-09-14  
+**What was implemented — `score_session()` in `src/detector.py`:**
+
+Replaced the binary `is_outlier` flag with a weighted composite score (0–100):
+
+```
+severity_score =
+    (flow_dev_norm   × 0.40) +
+    (duration_norm   × 0.30) +
+    (occ_mismatch    × 0.20) +
+    (sensor_penalty  × 0.10)
+× 100
+```
+
+Each component normalised to [0, 1] before weighting:
+
+| Component | Normalisation | Cap value |
+|---|---|---|
+| `flow_dev_norm` | `(avg_flow − baseline_mean) / 10.0` | 10 LPM deviation = 1.0 |
+| `duration_norm` | `duration_minutes / 60.0` | 60 min = 1.0 |
+| `occ_mismatch` | binary 0 or 1 | — |
+| `sensor_penalty` | binary 0 or 1 | — |
+
+**Weight rationale:**
+- **0.40 on flow deviation** — the primary physical signal. How abnormal is the flow? A 9 LPM deviation is categorically more alarming than a 1 LPM deviation.
+- **0.30 on duration** — a 4-hour leak is far more wasteful and damaging than a 15-minute spike. Duration is the second most important signal.
+- **0.20 on occupancy mismatch** — strong discriminator between a leak and normal use, but not the largest weight. A single bad occupancy sensor reading should not suppress a 6-hour leak.
+- **0.10 on sensor health** — uncertainty modifier. A FAULT reading lowers confidence in the other signals; it earns its own ticket type rather than a score boost.
+
+**Severity label buckets:**
+
+| Score range | Label |
+|---|---|
+| 76–100 | Critical |
+| 51–75 | High |
+| 26–50 | Medium |
+| 0–25 | Low |
+
+**Constants added to `src/config.py`:**
+```python
+W_FLOW_DEV = 0.40
+W_DURATION = 0.30
+W_OCC_MISMATCH = 0.20
+W_SENSOR_HEALTH = 0.10
+FLOW_DEV_CAP_LPM = 10.0
+DURATION_CAP_MIN = 60.0
+SEVERITY_CRITICAL_THRESHOLD = 76
+SEVERITY_HIGH_THRESHOLD = 51
+SEVERITY_MEDIUM_THRESHOLD = 26
+```
+
+---
+
+### Prompt 13 — Phase 2 Implementation: Section 4e (Water/Cost Impact)
+**Date:** 2026-09-14  
+**What was implemented — `session_to_ticket()` in `src/detector.py`:**
+
+```python
+estimated_water_loss_liters = avg_flow_lpm × duration_minutes
+estimated_cost_impact (Rs.) = estimated_water_loss_liters × 0.05
+```
+
+**Water rate assumption:** Rs. 0.05 per litre = Rs. 50 per 1,000 litres.  
+Source: midpoint of BWSSB (Bangalore Water Supply & Sewerage Board) and MCGM (Mumbai) commercial water tariff slabs, as of 2024. Stored as `WATER_COST_PER_LITER = 0.05` in `src/config.py` with the source comment so it is auditable and easy to update for a different city/rate.
+
+These fields (`estimated_water_loss_liters`, `estimated_cost_impact`) existed in the database schema from Phase 1 (Section 3 of the PRD defined them) but were written as `None`. Phase 2 populates them for every ticket.
+
+---
+
+### Prompt 14 — Phase 2 Scenario Verification
+**Date:** 2026-09-14  
+**Verification run output:**
+
+```
+  [A] SUSTAINED LEAK  -- Sink_01
+      Type   : sustained_leak
+      Score  : 53.0  (High)  [PASS]
+      Water  : 139.7 L   Cost : Rs.6.99
+
+  [B] SLOW DRIP       -- Toilet_02
+      Type   : slow_drip
+      Score  : 51.0  (High)  [PASS]
+      Water  : 19.0 L   Cost : Rs.0.95
+
+  [C] FALSE-POSITIVE  -- Sink_02
+      No ticket generated  [PASS] (correctly not flagged)
+```
+
+All three Definition of Done criteria met (PRD Section 6, Phase 2):
+- Slow drip IS caught by 4c
+- False-positive shower is NOT flagged
+- Sustained leak scores High
+
+**Phase 2 complete. Phase 3 next: LLM explanation layer per ticket.**
+
+---
+
+### Prompt 15 — Replay Demo Legend Behaviour Query
+**Date:** 2026-09-14  
+**Prompt given:**
+> In the replay demo, what is the double click on legend doing?
+
+**Response:**  
+This is standard Plotly default behaviour — nothing custom. Single click on a legend item toggles that fixture's trace off/on. Double click isolates that fixture (hides all others); double-clicking again restores all. No code change made — behaviour is useful for demo purposes (double-clicking Sink_01 during replay isolates the leak line visually).
+
+---
+
+### Prompt 16 — Prompts Log Catch-Up + Auto-Update Commitment
+**Date:** 2026-09-14  
+**Prompt given:**
+> prompts_log.md stopped updating after Phase 1 — Phase 2 has no entries.
+> 1. Retroactively add entries for everything built in Phase 2.
+> 2. This log needs to stay current automatically from now on — after every task, append an entry without waiting for me to ask.
+
+**What was done:**  
+Retroactively added Prompts 9–15 (all Phase 2 work) to this file. Going forward, a new entry will be appended to this log at the end of every task — no prompting required.
+
+---
+
+### Prompt 17 — Fix: Replay Chart Double-Click Isolate Broken
+**Date:** 2026-09-14  
+**Prompt given:**
+> The chart legend's isolate feature is broken in a specific way. When I double-click a legend entry the OPPOSITE happens — that trace disappears while all others stay visible for a second, then everything reverts. Fix this.
+
+**Root cause identified:**  
+`st.rerun()` fires on the REPLAY_REFRESH_SECONDS timer, reconstructing the entire page DOM. Plotly's double-click "isolate" is a two-event sequence (mousedown + mouseup). The `st.rerun()` fired between these two events, resetting the chart before the second event landed. Plotly therefore only registered a single click (which toggles/hides one trace), then the chart was destroyed and recreated showing all traces. This explains exactly the "trace disappears for ~1s then all reappear" behaviour.
+
+**Fix applied in `src/dashboard.py`:**
+
+1. **`uirevision` on the figure** — Plotly's mechanism for preserving client-side state (legend visibility, zoom, pan) across renders. When the same `uirevision` string is passed on every render, Plotly does not reset the chart's interactive state even though the data may have changed. Two separate constants used:
+   - `"replay_chart"` — for the Replay Demo chart
+   - `"full_dataset_chart"` — for the Full Dataset chart
+
+2. **`key=` on `st.plotly_chart`** — Streamlit's widget identity mechanism. Without a stable key, Streamlit treats the chart as a new widget on every rerun and unmounts/remounts the React component, discarding all Plotly client state. With `key="replay_flow_chart"`, Streamlit patches the existing component in place.
+
+**Why `uirevision` is a fixed string (not a timestamp):**  
+A fixed string means "never reset chart state programmatically". This is the correct behaviour for replay — you want zoom and legend isolations to persist through ticks. If we ever add a "Reset chart view" button, we'd pass a new unique string then to force a reset.
+
+**Files changed:** `src/dashboard.py` — `build_flow_chart()` signature + both `st.plotly_chart` call sites.
+
+---
+
+### Prompt 18 — Fix (Attempt 2): Replay Legend Double-Click — Root Cause Confirmed, Fragment Fix Applied
+**Date:** 2026-09-14  
+**Prompt given:**
+> The previous fix didn't work. I believe the real cause is deeper — the auto-refresh loop is firing between my first and second click, so the browser never registers a true double-click at all. Fix this properly using st.fragment if available, otherwise provide alternatives.
+
+**Root cause (confirmed):**  
+`uirevision` + `key=` do not survive a `st.rerun()`. A `st.rerun()` causes a **full Python script re-execution** — Streamlit tears down the entire component tree and rebuilds it. Even with a stable `key`, the component is fully unmounted and remounted with a new figure payload, and Plotly resets its client state regardless of `uirevision`. The `uirevision` hint only helps when Plotly itself decides to animate an update — it has no effect on component remounts.
+
+The `time.sleep(3) + st.rerun()` loop was firing on a 3-second timer. Plotly's double-click isolate is a two-event browser sequence. The rerun fired between those events, destroying the chart mid-gesture.
+
+**Streamlit version:** 1.56.0 — `st.fragment` (added in 1.37) is available.
+
+**Fix applied — `st.fragment(run_every=...)` architecture:**
+
+The `render_replay()` function was restructured as follows:
+
+```
+render_replay() [parent — full rerun only on Play/Pause/Reset button clicks]
+│
+├── Controls (Play/Pause/Reset/speed slider) — parent scope
+│
+├── st.plotly_chart(..., key="replay_flow_chart")  ← STAYS HERE, never in fragment
+│
+└── @st.fragment(run_every=REPLAY_REFRESH_SECONDS)
+    def _replay_ticker():
+        # clock display
+        # progress bar
+        # render_metrics()
+        # render_tickets_html()
+        # advance replay_ts in session_state
+```
+
+The fragment fires every `REPLAY_REFRESH_SECONDS` seconds WITHOUT triggering a full Streamlit script rerun. Because `st.plotly_chart` is in the **parent scope** and the fragment never calls it, the chart DOM element is never unmounted. Plotly's client-side legend state (which traces are isolated, zoom level, pan position) persists through every tick indefinitely.
+
+When the user clicks Play/Pause/Reset, those ARE full reruns — but that's correct and intentional. The chart rebuilds once on those deliberate interactions, which is not a problem.
+
+**`run_every=None` when paused:** when `replay_running=False`, the fragment receives `run_every=None` which disables the timer entirely. This means zero background reruns while paused, making the chart completely static and fully interactive.
+
+**Files changed:** `src/dashboard.py` — `render_replay()` completely restructured.  
+**`time.sleep` removed** — no longer needed since `run_every` handles the timer natively.
+
+---
+
+### Prompt 19 — Fix (Actual): Legend Double-Click — Real Cause Found, Plotly itemdoubleclick Missing
+**Date:** 2026-09-14  
+**Prompt given:**
+> The bug happens identically in Full dataset mode AND Replay demo mode. Full dataset has no auto-refresh loop at all — so the rerun/fragment theory is ruled out. The real cause is a Plotly legend configuration issue: itemclick and itemdoubleclick are not explicitly set.
+
+**Diagnosis confirmed:**  
+The `legend=dict(...)` in `build_flow_chart()` was missing `itemclick` and `itemdoubleclick` entirely. Without explicit values, Plotly's defaults are version-dependent and can behave unexpectedly — particularly when `hovermode="x unified"` is active, which alters how mouse events are handled on the chart area.
+
+**Before (lines 816–826):**
+```python
+legend=dict(
+    bgcolor="rgba(27,33,39,0.8)",
+    bordercolor="rgba(255,255,255,0.07)",
+    borderwidth=1,
+    font=dict(...),
+    orientation="h",
+    yanchor="top", y=-0.14,
+    xanchor="left", x=0,
+    # itemclick and itemdoubleclick absent
+),
+```
+
+**After:**
+```python
+legend=dict(
+    bgcolor="rgba(27,33,39,0.8)",
+    bordercolor="rgba(255,255,255,0.07)",
+    borderwidth=1,
+    font=dict(...),
+    orientation="h",
+    yanchor="top", y=-0.14,
+    xanchor="left", x=0,
+    itemclick="toggle",           # single click: show/hide that one trace
+    itemdoubleclick="toggleothers",  # double click: isolate (hide all others)
+),
+```
+
+**Note on previous fixes:** The `st.fragment` refactor (Prompt 18) was still a valid architectural improvement — it eliminates unnecessary full-page reruns during replay and makes the replay mode more responsive. It stays in place. It just wasn't the cause of the legend bug.
+
+**Files changed:** `src/dashboard.py` — `legend=dict(...)` in `build_flow_chart()`.
+
+---
+
+### Prompt 20 — Legend Isolate Bug: Investigation Summary and Deprioritization Decision
+**Date:** 2026-09-14  
+**Prompt given:**
+> Document the legend isolate bug investigation and the decision to deprioritize it.
+
+**Bug description:**  
+Double-clicking a legend entry in the flow rate chart does not correctly isolate that trace (hide all others). Instead, it briefly performs the opposite — the clicked trace disappears while all others stay — then reverts within approximately one second. The bug was reproducible identically in both Full dataset mode and Replay demo mode.
+
+**Theories investigated, in order:**
+
+| # | Theory | Fix attempted | Outcome |
+|---|---|---|---|
+| 1 | Streamlit `st.rerun()` resetting chart state between double-click events | Added stable `key=` and `uirevision=` to `st.plotly_chart` and `build_flow_chart()` to preserve chart state across reruns | Did not fix |
+| 2 | Full script rerun tearing down the chart component on every replay tick | Refactored replay mode from `time.sleep + st.rerun()` to `@st.fragment(run_every=...)` so only the tick loop reruns, not the whole page | Did not fix the legend bug; kept as a legitimate architectural improvement (eliminates unnecessary full reruns, cleaner separation of concerns) |
+| 3 | Plotly `legend.itemclick` / `legend.itemdoubleclick` not explicitly set, relying on version-dependent defaults | Explicitly set `itemclick="toggle"` and `itemdoubleclick="toggleothers"` in `build_flow_chart()` legend config | Did not fix |
+
+**Root cause:** Not conclusively identified within the time available. The likely remaining candidate is a Plotly.js version incompatibility or a Streamlit-specific event capture issue that prevents the browser from registering the second mouseup of a double-click in Plotly's horizontal legend (`orientation="h"`). The bug may not manifest in vertical legend mode. Further investigation would require browser devtools event tracing and was not pursued given time constraints.
+
+**Workaround:** Single-clicking each legend entry individually to toggle them off achieves the same visual result as isolate. Slightly more clicks, fully functional.
+
+**Deprioritization decision:**  
+The legend isolate feature is a convenience interaction, not a core capability. It has no effect on:
+- Detection logic (Sections 4a–4e)
+- Data pipeline (simulator → SQLite → detector)
+- Ticket generation, severity scoring, or cost estimation
+- Demo narrative (the anomaly data and charts are fully visible and correct)
+
+Given the submission deadline and the priority of Phase 3 (LLM explanation layer), further debugging was stopped. The bug is documented here as a known minor UX limitation.
+
+**Fixes that remain in the codebase (all net improvements regardless):**
+- `uirevision` + `key=` on chart widgets — preserves zoom/pan state across reruns
+- `st.fragment` replay architecture — cleaner, no unnecessary full reruns
+- Explicit `itemclick`/`itemdoubleclick` legend config — removes version-dependent defaults

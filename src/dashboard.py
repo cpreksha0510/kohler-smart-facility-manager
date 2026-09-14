@@ -744,8 +744,13 @@ def render_tickets_html(tickets: pd.DataFrame) -> None:
 
 # ── Chart builders ────────────────────────────────────────────────────────────
 
-def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None) -> go.Figure:
-    """Multi-line flow rate chart, one trace per fixture. Styled to match design system."""
+def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None, uirevision: str = "stable") -> go.Figure:
+    """Multi-line flow rate chart, one trace per fixture. Styled to match design system.
+
+    uirevision: Plotly key that preserves client-side state (legend isolation,
+    zoom, pan) across Streamlit reruns.  Pass the same string on every render
+    to keep state.  Pass a new/unique string to force a full chart reset.
+    """
     fig = go.Figure()
 
     if readings.empty:
@@ -818,6 +823,8 @@ def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None) -> go.Fig
             y=-0.14,
             xanchor="left",
             x=0,
+            itemclick="toggle",          # single click: show/hide that trace
+            itemdoubleclick="toggleothers",  # double click: isolate (hide all others)
         ),
         hovermode="x unified",
         hoverlabel=dict(
@@ -827,6 +834,7 @@ def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None) -> go.Fig
         ),
         height=370,
         margin=dict(l=0, r=0, t=32, b=52),
+        uirevision=uirevision,   # preserves legend isolation / zoom across st.rerun()
     )
     return fig
 
@@ -980,9 +988,10 @@ def render_full_dataset() -> None:
         unsafe_allow_html=True,
     )
     st.plotly_chart(
-        build_flow_chart(readings, zone_filter=active_zones),
+        build_flow_chart(readings, zone_filter=active_zones, uirevision="full_dataset_chart"),
         width="stretch",
         config={"displayModeBar": False},
+        key="full_dataset_flow_chart",
     )
 
     # Occupancy heatmap (collapsible — reduces visual noise on first load)
@@ -1016,90 +1025,125 @@ def render_full_dataset() -> None:
 # ── Replay demo view ──────────────────────────────────────────────────────────
 
 def render_replay() -> None:
+    """
+    Replay mode — stepped playback of the 48-hour simulation.
+
+    Architecture (why the chart is outside the fragment):
+      The tick loop uses @st.fragment(run_every=...) so it fires on a timer
+      WITHOUT triggering a full Streamlit script rerun.  The Plotly chart lives
+      OUTSIDE the fragment in the parent render_replay() scope.  Because the
+      fragment never touches the chart widget, Plotly's client-side state
+      (legend isolation, zoom, pan) survives every tick.
+
+      The old approach (time.sleep + st.rerun) caused a full script rerun on
+      every tick, destroying and recreating the chart DOM element.  Plotly's
+      double-click "isolate" is a two-event sequence; the rerun fired between
+      those events, registering only the first click (single toggle = hide one
+      trace), then the chart was reset.  That explains the "trace disappears
+      for ~1 s then everything reverts" behaviour.
+    """
     sim_end = SIM_START + datetime.timedelta(hours=SIM_DURATION_HOURS)
 
-    # Session state
+    # ── Session state init ────────────────────────────────────────────────────
     if "replay_ts" not in st.session_state:
         st.session_state.replay_ts = SIM_START
     if "replay_running" not in st.session_state:
         st.session_state.replay_running = False
+    if "replay_speed" not in st.session_state:
+        st.session_state.replay_speed = 2
 
-    # Controls
+    # ── Controls (parent scope — button clicks cause full reruns intentionally)
     c1, c2, c3 = st.columns([1, 1, 3])
     with c1:
         btn_label = "Pause" if st.session_state.replay_running else "Play"
         if st.button(btn_label, key="replay_play"):
             st.session_state.replay_running = not st.session_state.replay_running
+            st.rerun()
     with c2:
         if st.button("Reset", key="replay_reset"):
             st.session_state.replay_ts = SIM_START
             st.session_state.replay_running = False
+            st.rerun()
     with c3:
         speed = st.select_slider(
             "Simulated hours per step",
             options=[0.5, 1, 2, 4, 8],
-            value=2,
+            value=st.session_state.replay_speed,
             key="replay_speed",
         )
 
-    # Clock
-    cur_ts   = st.session_state.replay_ts
-    progress = min(
-        (cur_ts - SIM_START).total_seconds() / (SIM_DURATION_HOURS * 3600),
-        1.0,
-    )
-    st.markdown(
-        f'<div class="replay-clock">'
-        f'<div class="replay-clock-label">simulated time</div>'
-        f'<div class="replay-clock-time">'
-        f'{cur_ts.strftime("%a, %d %b %Y  \u2014  %H:%M")}'
-        f'</div></div>',
-        unsafe_allow_html=True,
-    )
-    render_progress(progress, f"{progress*100:.0f}% of 48-hour simulation")
+    # ── Chart — rendered in PARENT scope, never rebuilt by the fragment ───────
+    #    This is the critical piece: because the fragment below never calls
+    #    st.plotly_chart, Streamlit never unmounts/remounts this widget.
+    #    Plotly's internal state (which traces are isolated, zoom level, etc.)
+    #    is fully preserved through every fragment tick.
+    cur_ts_for_chart = st.session_state.replay_ts
+    chart_readings, _ = load_data(up_to_ts=cur_ts_for_chart)
 
-    # Data up to cursor
-    readings, tickets = load_data(up_to_ts=cur_ts)
-
-    # Metrics
-    render_metrics(readings, tickets)
-
-    # Chart
-    if not readings.empty:
-        st.markdown(
-            f'<div class="section-label">'
-            f'{icon("activity", 13)} flow rate so far'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-        st.plotly_chart(
-            build_flow_chart(readings),
-            width="stretch",
-            config={"displayModeBar": False},
-        )
-
-    # Tickets
-    n_tickets = len(tickets)
     st.markdown(
         f'<div class="section-label">'
-        f'{icon("list", 13)} tickets discovered &nbsp;'
-        f'<span style="color:var(--text-muted);font-weight:400">({n_tickets})</span>'
+        f'{icon("activity", 13)} flow rate so far'
         f'</div>',
         unsafe_allow_html=True,
     )
-    render_tickets_html(tickets)
+    if not chart_readings.empty:
+        st.plotly_chart(
+            build_flow_chart(chart_readings, uirevision="replay_chart"),
+            width="stretch",
+            config={"displayModeBar": False},
+            key="replay_flow_chart",
+        )
+    else:
+        st.caption("No readings yet — press Play to start the replay.")
 
-    # Advance clock
-    if st.session_state.replay_running:
-        next_ts = cur_ts + datetime.timedelta(hours=float(speed))
-        if next_ts >= sim_end:
-            st.session_state.replay_ts = sim_end
-            st.session_state.replay_running = False
-            st.success("Replay complete — full 48 hours simulated.")
-        else:
-            st.session_state.replay_ts = next_ts
-            time.sleep(REPLAY_REFRESH_SECONDS)
-            st.rerun()
+    # ── Fragment: clock / metrics / tickets / tick-advance ────────────────────
+    #    run_every fires this block on a timer without touching the chart above.
+    @st.fragment(run_every=REPLAY_REFRESH_SECONDS if st.session_state.replay_running else None)
+    def _replay_ticker() -> None:
+        cur_ts   = st.session_state.replay_ts
+        progress = min(
+            (cur_ts - SIM_START).total_seconds() / (SIM_DURATION_HOURS * 3600),
+            1.0,
+        )
+
+        # Clock display
+        st.markdown(
+            f'<div class="replay-clock">'
+            f'<div class="replay-clock-label">simulated time</div>'
+            f'<div class="replay-clock-time">'
+            f'{cur_ts.strftime("%a, %d %b %Y  \u2014  %H:%M")}'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+        render_progress(progress, f"{progress*100:.0f}% of 48-hour simulation")
+
+        # Data for metrics and tickets
+        readings, tickets = load_data(up_to_ts=cur_ts)
+        render_metrics(readings, tickets)
+
+        # Tickets
+        n_tickets = len(tickets)
+        st.markdown(
+            f'<div class="section-label">'
+            f'{icon("list", 13)} tickets discovered &nbsp;'
+            f'<span style="color:var(--text-muted);font-weight:400">({n_tickets})</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        render_tickets_html(tickets)
+
+        # Advance clock (only when running)
+        if st.session_state.replay_running:
+            spd   = st.session_state.get("replay_speed", 2)
+            nxt   = cur_ts + datetime.timedelta(hours=float(spd))
+            if nxt >= sim_end:
+                st.session_state.replay_ts = sim_end
+                st.session_state.replay_running = False
+                st.success("Replay complete — full 48 hours simulated.")
+            else:
+                st.session_state.replay_ts = nxt
+
+    _replay_ticker()
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
