@@ -109,6 +109,42 @@ STD_FLOOR = 0.2              # minimum effective std to prevent degenerate zero-
                              # Sustained leak (3.5 LPM) > 0.5 → caught.
                              # Slow drip (0.25 LPM) < 0.5 → not caught (by design).
 
+# ── Phase 2 detection thresholds (Sections 4b, 4c) ───────────────────────────
+
+# 4b — Multi-signal correlation
+MIN_SESSION_DURATION_MINUTES = 10   # Sessions shorter than this are treated as
+                                    # brief normal spikes (e.g. flush) and suppressed.
+                                    # The false-positive shower (13 min, occ=1) passes
+                                    # the duration gate but loses occupancy_mismatch credit.
+
+# 4c — Slow-drip detection via cumulative flow in unoccupied overnight windows.
+# Strategy: rather than a regression slope (which dilutes when most readings are
+# zero-flow), we sum total flow over a 2-hour rolling window restricted to
+# overnight + zero-occupancy minutes.  An idle fixture sums ≈ 0 L; the injected
+# drip (0.25 LPM × 120 min) sums ≈ 30 L — well above the 10 L alert threshold.
+SLOW_DRIP_WINDOW_MINUTES = 120           # rolling window width (2 hours)
+SLOW_DRIP_CUMULATIVE_THRESHOLD_L = 10.0  # litres over window to trigger slow-drip flag
+SLOW_DRIP_MIN_READINGS = 30             # ignore windows with fewer data points
+SLOW_DRIP_OVERNIGHT_HOURS = (22, 6)     # inclusive start/exclusive end of "overnight"
+                                        # 22:00–05:59 is expected to be unoccupied
+
+# ── Severity scoring weights (Section 4d) ─────────────────────────────────────
+W_FLOW_DEV      = 0.40   # normalised flow deviation above baseline
+W_DURATION      = 0.30   # normalised session duration
+W_OCC_MISMATCH  = 0.20   # 1.0 if all readings unoccupied, 0.0 if any occupancy=1
+W_SENSOR_HEALTH = 0.10   # penalty if sensor_status is FAULT/OFFLINE
+
+# Normalisation caps — values at or beyond these cap the component at 1.0
+FLOW_DEV_CAP_LPM = 10.0   # flow deviation ≥ 10 LPM above baseline → component = 1.0
+DURATION_CAP_MIN  = 60.0  # duration ≥ 60 min → component = 1.0
+
+# Severity label buckets (score × 100 mapped to Low/Medium/High/Critical)
+# score range: 0–100
+SEVERITY_CRITICAL_THRESHOLD = 76
+SEVERITY_HIGH_THRESHOLD     = 51
+SEVERITY_MEDIUM_THRESHOLD   = 26
+# Below 26 → Low
+
 # ── Business impact (used from Phase 2 onwards) ───────────────────────────────
 # Assumption: Indian municipal commercial water rate ≈ ₹50 per 1,000 litres.
 # Midpoint of BWSSB (Bangalore) / MCGM (Mumbai) commercial slab tariffs.
