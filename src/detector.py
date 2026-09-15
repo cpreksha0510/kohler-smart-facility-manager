@@ -64,6 +64,7 @@ from src.config import (
     FLOW_DEV_CAP_LPM, DURATION_CAP_MIN,
     SEVERITY_CRITICAL_THRESHOLD, SEVERITY_HIGH_THRESHOLD, SEVERITY_MEDIUM_THRESHOLD,
     WATER_COST_PER_LITER,
+    ANOMALY_SLOW_DRIP,
 )
 from src.database import get_readings_df, get_tickets_df, insert_ticket
 
@@ -564,22 +565,23 @@ def run_detection() -> None:
         else:
             print("\n  [A] SUSTAINED LEAK  -- Sink_01  [FAIL] (no ticket)")
 
-    # B -- Slow drip (Toilet_02, overnight constant drip)
+    # B -- Slow drip (Toilet_B1, overnight constant drip)
+    drip_fix = ANOMALY_SLOW_DRIP["fixture_id"]   # "Toilet_B1" — read from config, not hardcoded
     drip_t = tickets_df[
-        (tickets_df["fixture_id"] == "Toilet_02") &
+        (tickets_df["fixture_id"] == drip_fix) &
         (tickets_df["anomaly_type"] == "slow_drip")
     ]
     if not drip_t.empty:
         best  = drip_t.iloc[0]
         score = best["severity_score"]
         label = best["severity_label"]
-        print(f"\n  [B] SLOW DRIP       -- Toilet_02")
+        print(f"\n  [B] SLOW DRIP       -- {drip_fix}")
         print(f"      Type   : {best['anomaly_type']}")
         print(f"      Score  : {score:.1f}  ({label})  [PASS]")
         print(f"      Water  : {best['estimated_water_loss_liters']:.1f} L   "
               f"Cost : Rs.{best['estimated_cost_impact']:.2f}")
     else:
-        print("\n  [B] SLOW DRIP       -- Toilet_02  [FAIL] (not caught by 4c)")
+        print(f"\n  [B] SLOW DRIP       -- {drip_fix}  [FAIL] (not caught by 4c)")
 
     # C -- False-positive trap (Sink_02, occupied shower)
     sink02 = tickets_df[tickets_df["fixture_id"] == "Sink_02"]

@@ -53,16 +53,27 @@ st.set_page_config(
 
 # ── Design constants ──────────────────────────────────────────────────────────
 
-# Fixture line colors: distinct muted, desaturated palette sharing balanced
-# lightness (~50–56%) and low saturation (~25–35%) so every line is identifiable
-# without glowing or competing with severity alerts.
-FIXTURE_COLORS: dict[str, str] = {
-    "Sink_01":   "#6B8CAE",   # muted slate blue — hero fixture (sustained leak)
-    "Sink_02":   "#789A8B",   # muted sage green
-    "Sink_03":   "#9A8B78",   # muted warm taupe
-    "Toilet_01": "#847E9C",   # muted dusty lavender
-    "Toilet_02": "#B08D57",   # muted warm brass (slow drip)
+# Zone colors: one distinct muted color per zone.
+# Chosen for clear differentiation while staying within the dark control-room
+# palette — no primaries or neons, all desaturated to ~40–55% lightness.
+ZONE_COLORS: dict[str, str] = {
+    "T2_Restroom_A":  "#6B8CAE",   # muted slate blue   — departure restroom (busiest)
+    "T2_Restroom_B":  "#789A8B",   # muted sage green   — arrival restroom
+    "T2_Family_Room": "#B08D57",   # muted warm brass   — family/accessible room
+    "T2_Staff_WC":    "#847E9C",   # muted dusty violet — staff WC (lowest traffic)
 }
+
+# Fixture type → Plotly dash style.
+# Viewers can pattern-match on two visual dimensions (color + style):
+#   solid = sink, dash = toilet, dot = urinal
+TYPE_DASH: dict[str, str] = {
+    "sink":   "solid",
+    "toilet": "dash",
+    "urinal": "dot",
+}
+
+# Legacy: kept for any code that still references FIXTURE_COLORS
+FIXTURE_COLORS: dict[str, str] = ZONE_COLORS
 
 # Severity → icon name
 SEV_ICON: dict[str, str] = {
@@ -744,12 +755,23 @@ def render_tickets_html(tickets: pd.DataFrame) -> None:
 
 # ── Chart builders ────────────────────────────────────────────────────────────
 
-def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None, uirevision: str = "stable") -> go.Figure:
-    """Multi-line flow rate chart, one trace per fixture. Styled to match design system.
+def build_flow_chart(
+    readings: pd.DataFrame,
+    zone_filter: list = None,
+    uirevision: str = "stable",
+    chart_mode: str = "zone_total",
+) -> go.Figure:
+    """
+    Flow rate chart with two display modes.
+
+    chart_mode='zone_total'  — one trace per zone (aggregated sum), 4 lines max.
+                               Default view: clean, no per-fixture clutter.
+    chart_mode='per_fixture' — one trace per fixture, colored by zone,
+                               line style by fixture type (solid/dash/dot).
 
     uirevision: Plotly key that preserves client-side state (legend isolation,
-    zoom, pan) across Streamlit reruns.  Pass the same string on every render
-    to keep state.  Pass a new/unique string to force a full chart reset.
+    zoom, pan) across Streamlit reruns. Pass same string to keep state;
+    new/unique string to force a full chart reset.
     """
     fig = go.Figure()
 
@@ -771,30 +793,80 @@ def build_flow_chart(readings: pd.DataFrame, zone_filter: list = None, uirevisio
     # Downsample: every 5 minutes for rendering performance
     df = df[df["timestamp"].dt.minute % 5 == 0]
 
-    for fixture_id, fdf in df.groupby("fixture_id"):
-        fdf   = fdf.sort_values("timestamp")
-        color = FIXTURE_COLORS.get(str(fixture_id), "#8A97A0")
-        zone  = str(fdf["zone_id"].iloc[0]).replace("T2_", "")
-        # Sink_01 gets a slightly heavier line — draws the eye to the anomaly
-        width = 2.2 if fixture_id == "Sink_01" else 1.5
+    if chart_mode == "zone_total":
+        # ── Zone total mode: aggregate flow per zone per timestamp ─────────────
+        zone_agg = (
+            df.groupby(["timestamp", "zone_id"], as_index=False)
+            ["flow_rate_lpm"].sum()
+        )
+        for zone_id, zdf in zone_agg.groupby("zone_id"):
+            zdf   = zdf.sort_values("timestamp")
+            color = ZONE_COLORS.get(str(zone_id), "#8A97A0")
+            label = str(zone_id).replace("T2_", "").replace("_", " ")
+            fig.add_trace(go.Scatter(
+                x=zdf["timestamp"],
+                y=zdf["flow_rate_lpm"],
+                name=label,
+                uid=f"zone_{zone_id}",
+                mode="lines",
+                line=dict(color=color, width=2.0, dash="solid"),
+                hovertemplate=(
+                    f"<b>{label}</b><br>"
+                    "Time: %{x|%b %d %H:%M}<br>"
+                    "Total flow: %{y:.2f} LPM"
+                    "<extra></extra>"
+                ),
+            ))
+        chart_title = "Flow rate (L/min) — zone totals"
+    else:
+        # ── Per-fixture mode: one trace per fixture, zone color + type dash ────
+        # Infer fixture type from fixture_id prefix — more robust than a dict
+        # lookup which can silently fall back to "sink" on any mismatch.
+        #   "Urinal_*" → dot     "Toilet_*" → dash     anything else → solid
+        def _dash_for(fid: str) -> str:
+            fid_lower = str(fid).lower()
+            if fid_lower.startswith("urinal"):
+                return "dot"
+            if fid_lower.startswith("toilet"):
+                return "dash"
+            return "solid"
 
-        fig.add_trace(go.Scatter(
-            x=fdf["timestamp"],
-            y=fdf["flow_rate_lpm"],
-            name=f"{fixture_id}  ({zone})",
-            mode="lines",
-            line=dict(color=color, width=width),
-            hovertemplate=(
-                f"<b>{fixture_id}</b><br>"
-                "Time: %{x|%b %d %H:%M}<br>"
-                "Flow: %{y:.2f} LPM"
-                "<extra></extra>"
-            ),
-        ))
+        def _ftype_label(fid: str) -> str:
+            fid_lower = str(fid).lower()
+            if fid_lower.startswith("urinal"):
+                return "urinal"
+            if fid_lower.startswith("toilet"):
+                return "toilet"
+            return "sink"
+
+        for fixture_id, fdf in df.groupby("fixture_id"):
+            fdf        = fdf.sort_values("timestamp")
+            zone_id    = str(fdf["zone_id"].iloc[0])
+            color      = ZONE_COLORS.get(zone_id, "#8A97A0")
+            dash       = _dash_for(fixture_id)
+            ftype      = _ftype_label(fixture_id)
+            # Sink_01 slightly heavier — hero fixture (sustained leak)
+            width      = 2.2 if fixture_id == "Sink_01" else 1.4
+            zone_label = zone_id.replace("T2_", "").replace("_", " ")
+            fig.add_trace(go.Scatter(
+                x=fdf["timestamp"],
+                y=fdf["flow_rate_lpm"],
+                name=f"{fixture_id}  • {zone_label}",
+                uid=f"fixture_{fixture_id}",
+                mode="lines",
+                line=dict(color=color, width=width, dash=dash),
+                hovertemplate=(
+                    f"<b>{fixture_id}</b> ({ftype})<br>"
+                    "Time: %{x|%b %d %H:%M}<br>"
+                    "Flow: %{y:.2f} LPM"
+                    "<extra></extra>"
+                ),
+            ))
+        chart_title = "Flow rate (L/min) — per fixture  —  color = zone  —  style = type (solid sink / dashed toilet / dotted urinal)"
 
     fig.update_layout(
         title=dict(
-            text="Flow rate (L/min) — all fixtures",
+            text=chart_title,
             font=dict(family="IBM Plex Sans", size=12, color="#8A97A0"),
             x=0, xanchor="left", pad=dict(l=0, b=8),
         ),
@@ -850,6 +922,10 @@ def build_heatmap(readings: pd.DataFrame) -> go.Figure:
     agg   = df.groupby(["fixture_id", "hour"])["occupancy"].mean().reset_index()
     pivot = agg.pivot(index="fixture_id", columns="hour", values="occupancy").fillna(0)
 
+    # Dynamic height: allocate ~26px per fixture row plus header/margin headroom
+    # so Plotly never auto-skips categorical labels.
+    chart_height = max(280, len(pivot) * 26 + 80)
+
     import plotly.express as px
     fig = px.imshow(
         pivot,
@@ -872,9 +948,9 @@ def build_heatmap(readings: pd.DataFrame) -> go.Figure:
             thickness=10,
             len=0.8,
         ),
-        xaxis=dict(tickfont=dict(family="IBM Plex Sans", size=9, color="#8A97A0"), title=None),
-        yaxis=dict(tickfont=dict(family="IBM Plex Sans", size=9, color="#8A97A0"), title=None),
-        height=210,
+        xaxis=dict(tickfont=dict(family="IBM Plex Sans", size=9, color="#8A97A0"), title=None, dtick=1),
+        yaxis=dict(tickfont=dict(family="IBM Plex Sans", size=9, color="#8A97A0"), title=None, dtick=1),
+        height=chart_height,
         margin=dict(l=0, r=60, t=36, b=0),
     )
     return fig
@@ -969,26 +1045,41 @@ def render_full_dataset() -> None:
     # Metrics
     render_metrics(readings, tickets)
 
-    # Zone filter
+    # Zone filter — default to first zone only to avoid 17-trace clutter
     zones = sorted(readings["zone_id"].unique().tolist())
+    default_zone = [zones[0]] if zones else zones
     selected = st.multiselect(
         "Filter zones",
         options=zones,
-        default=zones,
+        default=default_zone,
         key="zone_filter_full",
         label_visibility="collapsed",
     )
     active_zones = selected or zones
 
-    # Flow chart
+    # Chart mode toggle + chart
     st.markdown(
         f'<div class="section-label">'
         f'{icon("activity", 13)} flow rate over time'
         f'</div>',
         unsafe_allow_html=True,
     )
+    chart_mode = st.radio(
+        "Chart view",
+        options=["Zone total", "Per fixture"],
+        index=0,          # default: Zone total
+        horizontal=True,
+        key="chart_mode_full",
+        label_visibility="collapsed",
+    )
+    mode_key = "zone_total" if chart_mode == "Zone total" else "per_fixture"
     st.plotly_chart(
-        build_flow_chart(readings, zone_filter=active_zones, uirevision="full_dataset_chart"),
+        build_flow_chart(
+            readings,
+            zone_filter=active_zones,
+            uirevision=f"full_dataset_{mode_key}",
+            chart_mode=mode_key,
+        ),
         width="stretch",
         config={"displayModeBar": False},
         key="full_dataset_flow_chart",
@@ -1028,19 +1119,16 @@ def render_replay() -> None:
     """
     Replay mode — stepped playback of the 48-hour simulation.
 
-    Architecture (why the chart is outside the fragment):
+    Architecture:
       The tick loop uses @st.fragment(run_every=...) so it fires on a timer
-      WITHOUT triggering a full Streamlit script rerun.  The Plotly chart lives
-      OUTSIDE the fragment in the parent render_replay() scope.  Because the
-      fragment never touches the chart widget, Plotly's client-side state
-      (legend isolation, zoom, pan) survives every tick.
+      WITHOUT triggering a full Streamlit script rerun.
 
-      The old approach (time.sleep + st.rerun) caused a full script rerun on
-      every tick, destroying and recreating the chart DOM element.  Plotly's
-      double-click "isolate" is a two-event sequence; the rerun fired between
-      those events, registering only the first click (single toggle = hide one
-      trace), then the chart was reset.  That explains the "trace disappears
-      for ~1 s then everything reverts" behaviour.
+      The Plotly flow chart lives INSIDE this fragment so it updates automatically
+      with new readings on every tick. Plotly's client-side state (legend visibility
+      toggles, zoom, pan) is preserved across ticks via:
+        1. Stable component key: key="replay_flow_chart"
+        2. Stable uirevision: uirevision="replay_chart"
+        3. Stable trace uids: uid=f"zone_{zone_id}"
     """
     sim_end = SIM_START + datetime.timedelta(hours=SIM_DURATION_HOURS)
 
@@ -1072,32 +1160,9 @@ def render_replay() -> None:
             key="replay_speed",
         )
 
-    # ── Chart — rendered in PARENT scope, never rebuilt by the fragment ───────
-    #    This is the critical piece: because the fragment below never calls
-    #    st.plotly_chart, Streamlit never unmounts/remounts this widget.
-    #    Plotly's internal state (which traces are isolated, zoom level, etc.)
-    #    is fully preserved through every fragment tick.
-    cur_ts_for_chart = st.session_state.replay_ts
-    chart_readings, _ = load_data(up_to_ts=cur_ts_for_chart)
-
-    st.markdown(
-        f'<div class="section-label">'
-        f'{icon("activity", 13)} flow rate so far'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-    if not chart_readings.empty:
-        st.plotly_chart(
-            build_flow_chart(chart_readings, uirevision="replay_chart"),
-            width="stretch",
-            config={"displayModeBar": False},
-            key="replay_flow_chart",
-        )
-    else:
-        st.caption("No readings yet — press Play to start the replay.")
-
-    # ── Fragment: clock / metrics / tickets / tick-advance ────────────────────
-    #    run_every fires this block on a timer without touching the chart above.
+    # ── Fragment: clock / metrics / chart / tickets / tick-advance ────────────
+    #    run_every fires this block on a timer without full page reruns.
+    #    The chart is inside this fragment so it auto-updates data on each tick.
     @st.fragment(run_every=REPLAY_REFRESH_SECONDS if st.session_state.replay_running else None)
     def _replay_ticker() -> None:
         cur_ts   = st.session_state.replay_ts
@@ -1117,9 +1182,26 @@ def render_replay() -> None:
         )
         render_progress(progress, f"{progress*100:.0f}% of 48-hour simulation")
 
-        # Data for metrics and tickets
+        # Data for metrics, chart, and tickets
         readings, tickets = load_data(up_to_ts=cur_ts)
         render_metrics(readings, tickets)
+
+        # Flow rate chart — inside fragment so it updates on every tick
+        st.markdown(
+            f'<div class="section-label">'
+            f'{icon("activity", 13)} flow rate so far'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if not readings.empty:
+            st.plotly_chart(
+                build_flow_chart(readings, uirevision="replay_chart"),
+                width="stretch",
+                config={"displayModeBar": False},
+                key="replay_flow_chart",
+            )
+        else:
+            st.caption("No readings yet — press Play to start the replay.")
 
         # Tickets
         n_tickets = len(tickets)

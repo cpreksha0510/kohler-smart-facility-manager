@@ -538,5 +538,103 @@ Given the submission deadline and the priority of Phase 3 (LLM explanation layer
 
 **Fixes that remain in the codebase (all net improvements regardless):**
 - `uirevision` + `key=` on chart widgets — preserves zoom/pan state across reruns
+- `uirevision` + `key=` on chart widgets — preserves zoom/pan state across reruns
 - `st.fragment` replay architecture — cleaner, no unnecessary full reruns
 - Explicit `itemclick`/`itemdoubleclick` legend config — removes version-dependent defaults
+
+---
+
+## Phase 2.5 — Simulator Realism Upgrade
+
+### Prompt 21 — Simulator Rewrite: Discrete Event Model + Expanded Fixture Layout
+**Date:** 2026-09-15  
+**Prompt given:**
+> Expand from 5 fixtures/2 zones to 12-15 fixtures across 3-4 zones. Fix simulation realism — model usage as discrete events. Layer on a realistic airport traffic curve. Keep anomaly injection but adapt it to this new baseline.
+
+**What was built:**
+
+**`src/config.py` — new facility layout (17 fixtures, 4 zones):**
+
+| Zone | Fixtures | Traffic multiplier |
+|---|---|---|
+| T2_Restroom_A (departure) | Sink_01–03, Toilet_A1–A3, Urinal_A1–A2 | 1.00 |
+| T2_Restroom_B (arrival) | Sink_04–05, Toilet_B1–B2, Urinal_B1 | 0.70 |
+| T2_Family_Room | Sink_06, Toilet_F1 | 0.25 |
+| T2_Staff_WC | Sink_07, Toilet_S1 | 0.12 |
+
+Added `EVENT_PARAMS` (volume/duration per fixture type from KOHLER commercial specs), `BASE_EVENTS_PER_HOUR` (airport traffic curve, ~6 events/fixture/hr at morning peak), and `ZONE_TRAFFIC_MULTIPLIER`.
+
+**`src/simulator.py` — discrete Poisson event model:**
+
+For each minute: `n_events ~ Poisson(rate_per_min × zone_multiplier)`. If 0: `flow=0.0, occ=0`. If >0: `flow_lpm = volume_delivered_L` (average-over-slot representation — a 5L flush in a 1-min row = 5 LPM, not 40 LPM instantaneous).
+
+Why Poisson: foot traffic events are independent arrivals in continuous time — the textbook Poisson process. 95.2% of rows idle (flow=0), 4.8% have use events. Peak hour sinks see ~28 events in 6h; family room sinks see ~9 (zone multiplier 0.25x).
+
+Anomaly injection unchanged. Slow drip fixture renamed `Toilet_02` → `Toilet_B1`. `detector.py` verification updated to read fixture name from `ANOMALY_SLOW_DRIP["fixture_id"]` in config.
+
+Added `--preview` flag for 6h/3-fixture sanity check before committing to full run.
+
+**Full run results:** 48,960 rows, mean event flow 2.68 LPM, max 12.58 LPM.
+
+**All 3 scenarios still PASS:** Sustained leak (Sink_01, 52.6 High), Slow drip (Toilet_B1, 51.0 High), False-positive (Sink_02, no ticket).
+
+**Files changed:** `src/config.py`, `src/simulator.py`, `src/detector.py`.
+
+---
+
+### Prompt 22 — Chart: Color by Zone + Line Style by Fixture Type + Zone Total Toggle
+**Date:** 2026-09-15  
+**Prompt given:**
+> Color by zone (4 colors, not 16), differentiate fixture type by line style (solid/dash/dot), default chart to one zone, add Zone total / Per fixture toggle.
+
+**Changes in `src/dashboard.py`:**
+- `FIXTURE_COLORS` replaced with `ZONE_COLORS` (4 entries, one per zone) + `TYPE_DASH` (sink=solid, toilet=dash, urinal=dot)
+- `build_flow_chart()` gained `chart_mode` param: `zone_total` aggregates flow per zone (4 clean lines, default), `per_fixture` draws one trace per fixture colored by zone and styled by type
+- Zone filter default changed from all zones → first zone only (avoids 17-trace wall on first load)
+- `st.radio("Zone total" / "Per fixture")` added above chart, defaulting to Zone total
+
+### Prompt 23 — Fix: Fixture Type Dash Style Not Applying (Dict Lookup Silent Default)
+**Date:** 2026-09-15  
+**Prompt given:**
+> Every trace is still solid — toilets and urinals are not dashed/dotted.
+
+**Root cause:** `fixture_type_map.get(str(fixture_id), "sink")` silently returned `"sink"` for all fixtures. The `from src.config import FIXTURES` inside the function was resolving against Streamlit's module cache at startup before the fixture list was populated, producing an empty dict. Every lookup hit the default `"sink"` → `TYPE_DASH["sink"]` → `"solid"`.
+
+**Fix:** Replaced dict lookup with direct prefix inference — `str(fid).lower().startswith("urinal")` / `.startswith("toilet")`. No import, no dict, cannot silently default. Browser-verified: Sink_01–03 solid `—`, Toilet_A1–A3 dashed `- -`, Urinal_A1–A2 dotted `. . .` ✓
+
+**Files changed:** `src/dashboard.py` — `build_flow_chart()` per-fixture trace loop.
+
+---
+
+### Prompt 24 — Restoring Chart Auto-Update in Replay Mode + Legend State Persistence
+**Date:** 2026-09-15  
+**Prompt given:**
+> Move the chart back INSIDE the fragment so it updates automatically on each tick (run_every interval), ensure stable key and uirevision are set so legend/zoom state does not reset across auto-updates. Confirm both behaviors: (a) chart auto-updates every tick without clicking play/pause, and (b) legend single-click toggle persists across auto-updates.
+
+**What was built:**
+- Relocated `st.plotly_chart(build_flow_chart(readings, ...))` inside the `@st.fragment(run_every=REPLAY_REFRESH_SECONDS)` function `_replay_ticker()`.
+- Maintained stable Streamlit widget key `key="replay_flow_chart"` and layout revision `uirevision="replay_chart"`.
+- Added explicit `uid=f"zone_{zone_id}"` and `uid=f"fixture_{fixture_id}"` to `go.Scatter` traces to ensure Plotly matches traces identically across data updates.
+- Browser test verified:
+  1. Chart auto-advances data on each 3-second tick without any manual clicks (verified 00:00 → 04:00 → 22:00+).
+  2. Single-clicked `Restroom A` legend toggle stayed persistent (dimmed & hidden) throughout continuous auto-updates and data re-renders.
+
+**Files changed:** `src/dashboard.py` (`render_replay()`, `build_flow_chart()`).
+
+---
+
+### Prompt 25 — Fix: Occupancy Heatmap Missing Alternate Fixture Labels
+**Date:** 2026-09-15  
+**Prompt given:**
+> The "Occupancy pattern by hour of day" heatmap is not showing all fixtures — only about 9 of the ~14-15 fixtures are visible/labeled. Confirm if data or rendering issue, increase height if rendering issue, confirm count of fixtures in data vs heatmap, show screenshot.
+
+**Investigation & Root Cause:**
+- **Data check:** Confirmed all 17 fixtures exist in `sensor_readings` and in `pivot.index` across all 24 hours (`len(pivot) == 17`). Not a data issue.
+- **Rendering root cause:** `build_heatmap()` had a fixed `height=210` px set when the system only had 5 fixtures in Phase 1. With 17 fixtures, each row had only ~8px vertical space. Plotly's categorical y-axis automatically dropped every other label to avoid overlapping text, hiding exactly the 8 alternate fixtures.
+
+**Fix:**
+- Updated `build_heatmap()` in `src/dashboard.py` to calculate dynamic height: `chart_height = max(280, len(pivot) * 26 + 80)` (522px for 17 fixtures, giving each row ~26px height).
+- Set `dtick=1` on `yaxis` and `xaxis` so Plotly explicitly renders every fixture row and tick mark without skipping.
+- Verified in live browser: All 17 fixtures (`Sink_01`–`Sink_07`, `Toilet_A1`–`Toilet_S1`, `Urinal_A1`–`Urinal_B1`) are visible and labeled.
+
+**Files changed:** `src/dashboard.py` (`build_heatmap()`).
