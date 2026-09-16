@@ -748,7 +748,7 @@ def render_tickets_html(tickets: pd.DataFrame) -> None:
         st.markdown(
             f'<p style="font-size:0.74rem;color:var(--text-muted);margin-top:0.4rem">'
             f'Showing {MAX_TICKETS_SHOWN} of {len(tickets)} tickets — '
-            f'{overflow} not shown. Phase 2 severity scoring will reduce noise.</p>',
+            f'{overflow} additional tickets not shown.</p>',
             unsafe_allow_html=True,
         )
 
@@ -979,11 +979,14 @@ def render_sidebar() -> str:
 
         st.divider()
 
+        zone_items = "".join(
+            f'<div class="zone-item"><div class="zone-dot" style="background:{color}"></div>{z}</div>'
+            for z, color in ZONE_COLORS.items()
+        )
         st.markdown(
             '<p style="font-size:0.71rem;color:var(--text-muted);'
             'letter-spacing:0.06em;margin-bottom:0.5rem">zones</p>'
-            '<div class="zone-item"><div class="zone-dot"></div>T2_Restroom_A</div>'
-            '<div class="zone-item"><div class="zone-dot"></div>T2_Restroom_B</div>',
+            f'{zone_items}',
             unsafe_allow_html=True,
         )
 
@@ -992,18 +995,11 @@ def render_sidebar() -> str:
         st.markdown(
             '<p style="font-size:0.71rem;color:var(--text-muted);'
             'letter-spacing:0.06em;margin-bottom:0.4rem">detection</p>'
-            '<p style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">'
-            'Section 4a &mdash; adaptive baseline<br>2.5&sigma; per fixture/hour-of-day</p>',
-            unsafe_allow_html=True,
-        )
-
-        st.divider()
-
-        st.markdown(
-            '<p style="font-size:0.73rem;color:#5B6770;line-height:1.6">'
-            'Phase 1 of 3<br>'
-            'Severity scoring: Phase 2<br>'
-            'LLM explanations: Phase 3</p>',
+            '<p style="font-size:0.78rem;color:var(--text-muted);line-height:1.55">'
+            'Adaptive baseline (2.5&sigma;/fixture/hr)<br>'
+            'Multi-signal correlation (occupancy, duration, health)<br>'
+            'Slow-drip rate-of-change tracking<br>'
+            'Weighted severity scoring (0&ndash;100)</p>',
             unsafe_allow_html=True,
         )
 
@@ -1101,10 +1097,6 @@ def render_full_dataset() -> None:
         f'<span style="color:var(--text-muted);font-weight:400">({n_tickets})</span>'
         f'</div>',
         unsafe_allow_html=True,
-    )
-    st.caption(
-        "Phase 1 uses statistical baseline only. Many daytime tickets are false positives "
-        "by design — Phase 2 multi-signal correlation will suppress them."
     )
     render_tickets_html(tickets)
 

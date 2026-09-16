@@ -638,3 +638,23 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 - Verified in live browser: All 17 fixtures (`Sink_01`–`Sink_07`, `Toilet_A1`–`Toilet_S1`, `Urinal_A1`–`Urinal_B1`) are visible and labeled.
 
 **Files changed:** `src/dashboard.py` (`build_heatmap()`).
+
+---
+
+### Prompt 26 — UI Cleanup: Remove Dev Notes, Stale Phase Tracking & Refresh Sidebar
+**Date:** 2026-09-16  
+**Prompt given:**
+> Remove the false-positives dev note from above flagged tickets table; remove internal phase build tracking ("Phase 1 of 3...") from sidebar; update sidebar zones to all 4 current zones; update detection section to accurately describe Phase 2 logic (adaptive baseline + multi-signal correlation + slow-drip + severity scoring). Show updated sidebar and confirm no other dev text exists.
+
+**What was built:**
+- **Flagged tickets:** Removed the `st.caption("Phase 1 uses statistical baseline only...")` dev note from above the tickets table and replaced the table overflow note with clean, user-facing text.
+- **Sidebar zones:** Replaced static 2-zone list with all 4 active zones (`T2_Restroom_A`, `T2_Restroom_B`, `T2_Family_Room`, `T2_Staff_WC`), each rendered with its matching accent color indicator dot.
+- **Sidebar detection description:** Updated outdated Phase 1 summary to reflect full Phase 2 architecture:
+  - Adaptive baseline (2.5σ/fixture/hr)
+  - Multi-signal correlation (occupancy, duration, health)
+  - Slow-drip rate-of-change tracking
+  - Weighted severity scoring (0–100)
+- **Phase-tracking removal:** Deleted the internal roadmap block ("Phase 1 of 3...") and its divider from the sidebar.
+- **Audited codebase:** Confirmed 0 remaining dev/phase-tracking text on the user-facing dashboard.
+
+**Files changed:** `src/dashboard.py` (`render_sidebar()`, `render_full_dataset()`, `render_tickets_html()`).
