@@ -23,7 +23,7 @@
 | Detection logic | Python (pandas + plain arithmetic, no ML required) | See Section 4 |
 | Backend/API | FastAPI (optional if dashboard needs an API layer) or direct SQLite reads from Streamlit | Simplicity first |
 | Dashboard | Streamlit | Fastest way to get a live-updating, good-looking UI without frontend overhead |
-| LLM layer | Claude or GPT API | Natural-language summaries + explanation of why a ticket was flagged |
+| LLM layer | Google Gemini API | Natural-language summaries + explanation of why a ticket was flagged |
 | Docs | This file + a running prompts log | Required submission artifact |
 
 No WebSockets, no time-series DB (InfluxDB/Timescale), no ML model required for the core build. These are optional Stage 4 upgrades only, never required for a complete submission.
@@ -102,7 +102,7 @@ severity_score =
 
 ## 5. LLM Layer (separate from detection — LLM explains, doesn't decide)
 
-The LLM does NOT decide whether something is an anomaly — the rules/logic above do that deterministically so it's explainable and auditable. The LLM's job:
+The LLM (Google Gemini API — `gemini-2.5-flash`) does NOT decide whether something is an anomaly — the rules/logic above do that deterministically so it's explainable and auditable. The LLM's job:
 1. Given a flagged ticket's raw data (severity score, signals that triggered it), generate a 1-2 sentence plain-English explanation for the facility manager.
    - Example: "Flagged as Critical: Sink_03 in Terminal2_Restroom_A showed sustained flow 40 min above its normal 2am baseline with zero occupancy detected — consistent with an active leak."
 2. Generate an end-of-day digest summarizing all Low/Medium tickets in natural language.

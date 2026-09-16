@@ -66,7 +66,7 @@ from src.config import (
     WATER_COST_PER_LITER,
     ANOMALY_SLOW_DRIP,
 )
-from src.database import get_readings_df, get_tickets_df, insert_ticket
+from src.database import get_readings_df, get_tickets_df, insert_ticket, save_daily_digest
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -463,10 +463,15 @@ def session_to_ticket(session: dict) -> dict:
         "anomaly_type":                session.get("anomaly_type", "sustained_leak"),
         "severity_score":              session.get("severity_score"),
         "severity_label":              session.get("severity_label", "Flagged"),
-        "explanation":                 "",   # Phase 3 LLM
+        "explanation":                 session.get("explanation", ""),
         "estimated_water_loss_liters": water_loss,
         "estimated_cost_impact":       cost,
         "status":                      "open",
+        # Telemetry context for LLM explanation generation
+        "duration_minutes":            duration,
+        "avg_flow_lpm":                avg_flow,
+        "max_flow_lpm":                session.get("max_flow_lpm", avg_flow),
+        "avg_baseline_mean":           session.get("avg_baseline_mean", 0.0),
     }
 
 
@@ -525,9 +530,24 @@ def run_detection() -> None:
     for sd in slow_drips:
         tickets.append(session_to_ticket(sd))
 
+    # Pass 4 -- LLM ticket explanation generation (Google Gemini API)
+    print("\nPass 4 -- Generating LLM explanations (Google Gemini API)...")
+    from src.llm import enrich_tickets_with_explanations, generate_daily_digest
+    tickets = enrich_tickets_with_explanations(tickets)
+
     print(f"\nWriting {len(tickets)} ticket(s) to database...")
     for t in tickets:
         insert_ticket(str(DB_PATH), t)
+
+    # Pass 5 -- End-of-day digest generation (Section 5.2)
+    print("\nPass 5 -- Generating End-of-Day Digests (Section 5.2)...")
+    dates = sorted(list({str(t["timestamp_flagged"])[:10] for t in tickets if t.get("timestamp_flagged")}))
+    for d_str in dates:
+        digest = generate_daily_digest(tickets, d_str)
+        d_count = sum(1 for t in tickets if str(t.get("timestamp_flagged", "")).startswith(d_str) and str(t.get("severity_label", "")).lower() in ("low", "medium"))
+        save_daily_digest(str(DB_PATH), d_str, digest, d_count)
+        print(f"  [{d_str}] Digest generated ({d_count} Low/Med tickets):")
+        print(f"       \"{digest}\"")
 
     # Scenario verification
     print("\n" + "-" * 70)
@@ -549,9 +569,9 @@ def run_detection() -> None:
         print(f"      Score  : {score:.1f}  ({label})  {verdict}")
         print(f"      Water  : {best['estimated_water_loss_liters']:.1f} L   "
               f"Cost : Rs.{best['estimated_cost_impact']:.2f}")
+        if "explanation" in best and best["explanation"]:
+            print(f"      LLM Explanation: \"{best['explanation']}\"")
     else:
-        # Sustained leak may also surface via slow-drip detector if the leak is also
-        # overnight + unoccupied (which ours is) — check any Sink_01 High/Critical
         any_sink01 = sink01.sort_values("severity_score", ascending=False)
         if not any_sink01.empty:
             best    = any_sink01.iloc[0]
@@ -562,6 +582,8 @@ def run_detection() -> None:
             print(f"      Score  : {score:.1f}  ({label})  {verdict}")
             print(f"      Water  : {best['estimated_water_loss_liters']:.1f} L   "
                   f"Cost : Rs.{best['estimated_cost_impact']:.2f}")
+            if "explanation" in best and best["explanation"]:
+                print(f"      LLM Explanation: \"{best['explanation']}\"")
         else:
             print("\n  [A] SUSTAINED LEAK  -- Sink_01  [FAIL] (no ticket)")
 
@@ -580,6 +602,8 @@ def run_detection() -> None:
         print(f"      Score  : {score:.1f}  ({label})  [PASS]")
         print(f"      Water  : {best['estimated_water_loss_liters']:.1f} L   "
               f"Cost : Rs.{best['estimated_cost_impact']:.2f}")
+        if "explanation" in best and best["explanation"]:
+            print(f"      LLM Explanation: \"{best['explanation']}\"")
     else:
         print(f"\n  [B] SLOW DRIP       -- {drip_fix}  [FAIL] (not caught by 4c)")
 
@@ -611,7 +635,7 @@ def run_detection() -> None:
             f"{row['estimated_cost_impact']:>10.2f}"
         )
 
-    print("\n[OK] Phase 2 detection complete.")
+    print("\n[OK] Phase 3 detection & LLM layer complete.")
 
 
 if __name__ == "__main__":

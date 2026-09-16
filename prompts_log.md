@@ -658,3 +658,59 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 - **Audited codebase:** Confirmed 0 remaining dev/phase-tracking text on the user-facing dashboard.
 
 **Files changed:** `src/dashboard.py` (`render_sidebar()`, `render_full_dataset()`, `render_tickets_html()`).
+
+---
+
+### Prompt 27 — Phase 3: LLM Layer (Google Gemini API, Explainability & Daily Digest)
+**Date:** 2026-09-16  
+**Prompt given:**
+> Build Phase 3 (LLM layer, Sections 5 & 6 of PRD). Use Google Gemini API (gemini-2.5-flash / gemini-3.6-flash) via official google-generativeai SDK with GEMINI_API_KEY from .env. The LLM only explains tickets already flagged by deterministic detection (Phases 1–2).
+> 1. For each flagged ticket, generate a 1–2 sentence plain-English explanation referencing real telemetry (fixture, zone, duration, flow vs baseline, zero-occupancy, water loss).
+> 2. Explanations generated once per ticket at creation time and stored in SQLite `tickets.explanation` (read from DB on dashboard reruns, zero latency overhead).
+> 3. End-of-day operational digest summarizing Low & Medium severity tickets for each day (High/Critical excluded).
+> 4. Display LLM explanations in the flagged tickets table without horizontal scroll.
+> 5. Structured JSON output from Gemini.
+> 6. Graceful deterministic fallback on rate limits or API failure with 1 retry + backoff.
+
+**What was built:**
+- **Configuration (`src/config.py`):** Added Gemini model parameters (`GEMINI_MODEL_PRIMARY = "gemini-3.6-flash"`, `GEMINI_MODEL_FALLBACK = "gemini-2.5-flash"`), API key loader, retry count, and backoff settings.
+- **Database (`src/database.py`):** Added `daily_digests` table (`date`, `digest`, `ticket_count`, `created_at`) with migration logic, `save_daily_digest()`, and `get_daily_digests()`.
+- **LLM Engine (`src/llm.py`):**
+  - Configured `google-generativeai` with structured JSON schema (`response_mime_type="application/json"`).
+  - Implemented `generate_ticket_explanation()` providing 1–2 sentence incident narratives citing fixture ID, zone, anomaly type, average flow vs baseline, zero-occupancy correlation, duration, and water loss.
+  - Implemented `generate_daily_digest()` summarizing Low/Medium operational tickets with recommended next actions (excluding High/Critical).
+  - Built exponential backoff retry and deterministic fallback generator (`_deterministic_ticket_fallback`, `_deterministic_digest_fallback`) handling rate limits (429) or offline states cleanly.
+- **Detection Pipeline Integration (`src/detector.py`):**
+  - Integrated Pass 4 into the detection engine: enriches newly flagged tickets with LLM explanations prior to saving in `facility.db`.
+  - Integrated Pass 5: groups Low/Medium tickets by day, generates end-of-day operational digests, and stores them in `daily_digests`.
+- **Dashboard UI (`src/dashboard.py`):**
+  - Created `render_daily_digest()` displaying a date-switchable command-card above the tickets table with Low/Med ticket counts and operational action summaries.
+  - Redesigned the tickets table layout: rendered AI explanations into `<tr class="tr-expl">` sub-rows with an `AI ANALYSIS` badge, completely eliminating horizontal scrolling while maximizing readability.
+- **Verification:**
+  - Automated tests verified database persistence, JSON structure, retry handling, and fallback behavior.
+  - Live browser subagent verified the dashboard at `http://localhost:8501`, confirming date tab switching on the operational digest, plain-English explanations on all tickets, and absence of horizontal scrollbars.
+
+**Files changed:** `facility_manager_prd.md`, `src/config.py`, `src/database.py`, `src/llm.py`, `src/detector.py`, `src/dashboard.py`, `prompts_log.md`.
+
+---
+
+### Prompt 28 — Fix: AI Analysis Text Wrapping & Initial Replay Chart 48h Timeline
+**Date:** 2026-09-16  
+**Prompt given:**
+> 1. HORIZONTAL SCROLL ON AI ANALYSIS: The "AI ANALYSIS" explanation text under each ticket is causing the whole tickets table to require horizontal scrolling — the explanation text is extending the row width instead of wrapping within the available column/container width. Fix by setting the AI Analysis text container to wrap (white-space: normal / word-wrap: break-word) within a fixed max-width matching the table's actual width, instead of rendering as one long unbroken line. Confirm the explanation text now wraps onto multiple lines without pushing the table wider than viewport.
+> 2. INCONSISTENT X-AXIS BEFORE REPLAY STARTS: In Replay demo mode, before clicking Play, the "flow rate so far" chart shows a broken/degenerate x-axis range (e.g., spanning from 23:59:59.999 to 00:00:00.0005) because at 0 elapsed time Plotly auto-scales to a single point. Fix by explicitly setting the chart's x-axis range to the FULL intended 48-hour simulated period (Jan 15 00:00 to Jan 17 00:00) as a fixed range from the start, regardless of how much replay data has actually been plotted yet.
+> Show screenshot of both fixes.
+
+**Root cause & Fixes:**
+1. **AI Analysis Text Wrapping & Table Width:**
+   - In CSS, `.ticket-table tbody td` had `white-space: nowrap !important;` by default. Under table auto-layout, `.expl-container` inside `colspan="8"` had no width cap or wrap rules, expanding the entire table to 1800px+ and causing a horizontal scrollbar.
+   - Fixed `.td-expl` with `white-space: normal !important; max-width: 0;`.
+   - Fixed `.expl-container` with `white-space: normal !important; word-wrap: break-word !important; overflow-wrap: break-word !important; max-width: 960px; width: 100%;`.
+   - Set `.expl-text` with `min-width: 0; flex: 1 1 auto; word-wrap: break-word !important;`.
+   - Browser verified: All 8 ticket columns (`Ticket`, `Flagged at`, `Zone`, `Fixture`, `Type`, `Severity`, `Water loss`, `Status`) fit entirely on screen; AI explanations wrap cleanly onto 2 lines; zero horizontal scrollbar.
+2. **Replay Flow Rate Chart Initial 48-Hour Canvas:**
+   - In `src/dashboard.py`, `build_flow_chart()` was updated with default `x_range=[SIM_START, sim_end]` (`2024-01-15 00:00:00` to `2024-01-17 00:00:00`) applied explicitly to `xaxis=dict(range=x_range, ...)` in both empty and populated states.
+   - Updated `render_replay()` to always render the flow chart canvas and bumped layout revision to `uirevision="replay_chart_v2"`.
+   - Browser verified: Initial replay state (before Play) shows the clean, full 48-hour timeline with tick marks spanning Jan 15 through Jan 17, completely resolving the degenerate millisecond range.
+
+**Files changed:** `src/dashboard.py`, `prompts_log.md`, `walkthrough.md`.

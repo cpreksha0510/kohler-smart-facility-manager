@@ -40,7 +40,7 @@ from src.config import (
     DB_PATH, SIM_START, SIM_DURATION_HOURS,
     DASHBOARD_REFRESH_SECONDS, REPLAY_REFRESH_SECONDS,
 )
-from src.database import get_readings_df, get_tickets_df
+from src.database import get_readings_df, get_tickets_df, get_daily_digests
 from src.icons import icon
 
 # ── Streamlit page config ─────────────────────────────────────────────────────
@@ -575,6 +575,95 @@ hr {
   font-size: 0.82rem;
   color: var(--accent-primary);
 }
+
+/* ── Ticket AI Explanation Sub-row ── */
+.tr-expl {
+  background: rgba(22, 28, 34, 0.45) !important;
+}
+.tr-expl:hover {
+  background: rgba(27, 33, 39, 0.7) !important;
+}
+.td-expl {
+  padding: 0.45rem 1rem 0.65rem 0.6rem !important;
+  border-bottom: 1px solid var(--border) !important;
+  white-space: normal !important;
+  max-width: 0;
+}
+.expl-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 960px;
+  width: 100%;
+}
+.expl-badge {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: rgba(107, 140, 174, 0.14);
+  color: var(--accent-primary);
+  border: 1px solid rgba(107, 140, 174, 0.28);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.expl-text {
+  color: #C5CFD6;
+  font-family: 'IBM Plex Sans', sans-serif;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── End-of-Day Digest Card ── */
+.digest-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-brass);
+  border-radius: var(--r);
+  padding: 0.95rem 1.25rem;
+  margin-bottom: 1.15rem;
+}
+.digest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+.digest-title {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.digest-badge {
+  font-size: 0.70rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 2px;
+  background: rgba(176, 141, 87, 0.14);
+  color: var(--accent-brass);
+  border: 1px solid rgba(176, 141, 87, 0.28);
+}
+.digest-body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.80rem;
+  color: #C5CFD6;
+  line-height: 1.55;
+}
 </style>
 """
 
@@ -595,6 +684,11 @@ def _load_all_tickets() -> pd.DataFrame:
     if not df.empty:
         df["timestamp_flagged"] = pd.to_datetime(df["timestamp_flagged"])
     return df
+
+
+@st.cache_data(ttl=4)
+def _load_digests() -> dict[str, dict]:
+    return get_daily_digests(str(DB_PATH))
 
 
 def load_data(up_to_ts: datetime.datetime = None):
@@ -687,7 +781,7 @@ def _ticket_row(row: pd.Series) -> str:
     zone    = str(row.get("zone_id", ""))
     fixture = str(row.get("fixture_id", ""))
 
-    return (
+    main_row = (
         f'<tr>'
         f'<td class="td-stripe {stripe_cls}"></td>'
         f'<td class="td-mono">{tid}</td>'
@@ -704,6 +798,71 @@ def _ticket_row(row: pd.Series) -> str:
         f'<td class="td-muted">{status}</td>'
         f'</tr>'
     )
+
+    expl = str(row.get("explanation") or "").strip()
+    expl_row = ""
+    if expl:
+        expl_row = (
+            f'<tr class="tr-expl">'
+            f'<td class="td-stripe {stripe_cls}"></td>'
+            f'<td colspan="8" class="td-expl">'
+            f'<div class="expl-container">'
+            f'<span class="expl-badge">AI Analysis</span>'
+            f'<span class="expl-text">{expl}</span>'
+            f'</div>'
+            f'</td>'
+            f'</tr>'
+        )
+
+    return f"{main_row}{expl_row}"
+
+
+def render_daily_digest(digests: dict[str, dict]) -> None:
+    """Render the end-of-day operational digest card."""
+    if not digests:
+        return
+
+    dates = list(digests.keys())
+    if not dates:
+        return
+
+    st.markdown(
+        f'<div class="section-label">'
+        f'{icon("file", 13)} operational daily digest &nbsp;'
+        f'<span style="color:var(--text-muted);font-weight:400">(Low &amp; Medium severity summary)</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    if len(dates) > 1:
+        date_options = {d: pd.to_datetime(d).strftime("%a, %b %d") for d in dates}
+        selected_date = st.radio(
+            "Digest Date",
+            options=dates,
+            format_func=lambda d: date_options.get(d, d),
+            index=0,
+            horizontal=True,
+            key="digest_date_selector",
+            label_visibility="collapsed",
+        )
+    else:
+        selected_date = dates[0]
+
+    d_info = digests.get(selected_date, {})
+    digest_text = d_info.get("digest", "")
+    ticket_count = d_info.get("ticket_count", 0)
+    d_label = pd.to_datetime(selected_date).strftime("%B %d, %Y")
+
+    card_html = (
+        f'<div class="digest-card">'
+        f'<div class="digest-header">'
+        f'<div class="digest-title">{icon("activity", 13)} Summary for {d_label}</div>'
+        f'<span class="digest-badge">{ticket_count} Low/Med tickets summarized</span>'
+        f'</div>'
+        f'<div class="digest-body">{digest_text}</div>'
+        f'</div>'
+    )
+    st.markdown(card_html, unsafe_allow_html=True)
 
 
 def render_tickets_html(tickets: pd.DataFrame) -> None:
@@ -760,6 +919,7 @@ def build_flow_chart(
     zone_filter: list = None,
     uirevision: str = "stable",
     chart_mode: str = "zone_total",
+    x_range: list | tuple | None = None,
 ) -> go.Figure:
     """
     Flow rate chart with two display modes.
@@ -774,13 +934,37 @@ def build_flow_chart(
     new/unique string to force a full chart reset.
     """
     fig = go.Figure()
+    sim_end = SIM_START + datetime.timedelta(hours=SIM_DURATION_HOURS)
+    if x_range is None:
+        x_range = [SIM_START, sim_end]
 
     if readings.empty:
         fig.update_layout(
-            title=dict(text="No readings yet", font=dict(color="#8A97A0", size=13)),
+            title=dict(
+                text="Flow rate (L/min) — standby (press Play to start)",
+                font=dict(family="IBM Plex Sans", size=12, color="#8A97A0"),
+                x=0, xanchor="left", pad=dict(l=0, b=8),
+            ),
             paper_bgcolor="#12161A",
             plot_bgcolor="#12161A",
-            height=360,
+            font=dict(family="IBM Plex Sans", color="#8A97A0", size=11),
+            xaxis=dict(
+                range=x_range,
+                showgrid=True, gridcolor="rgba(107, 140, 174, 0.07)",
+                zeroline=False, showline=False,
+                tickfont=dict(family="IBM Plex Sans", size=10, color="#8A97A0"),
+                title=None,
+            ),
+            yaxis=dict(
+                range=[0, 10],
+                showgrid=True, gridcolor="rgba(107, 140, 174, 0.07)",
+                zeroline=False, showline=False,
+                tickfont=dict(family="IBM Plex Sans", size=10, color="#8A97A0"),
+                title=dict(text="L/min", font=dict(size=10, color="#8A97A0")),
+            ),
+            height=370,
+            margin=dict(l=0, r=0, t=32, b=52),
+            uirevision=uirevision,
         )
         return fig
 
@@ -874,6 +1058,7 @@ def build_flow_chart(
         plot_bgcolor="#12161A",
         font=dict(family="IBM Plex Sans", color="#8A97A0", size=11),
         xaxis=dict(
+            range=x_range,
             showgrid=True, gridcolor="rgba(107, 140, 174, 0.07)",
             zeroline=False, showline=False,
             tickfont=dict(family="IBM Plex Sans", size=10, color="#8A97A0"),
@@ -1089,6 +1274,10 @@ def render_full_dataset() -> None:
             config={"displayModeBar": False},
         )
 
+    # End-of-Day Digest (Section 5.2)
+    digests = _load_digests()
+    render_daily_digest(digests)
+
     # Tickets
     n_tickets = len(tickets)
     st.markdown(
@@ -1185,15 +1374,16 @@ def render_replay() -> None:
             f'</div>',
             unsafe_allow_html=True,
         )
-        if not readings.empty:
-            st.plotly_chart(
-                build_flow_chart(readings, uirevision="replay_chart"),
-                width="stretch",
-                config={"displayModeBar": False},
-                key="replay_flow_chart",
-            )
-        else:
-            st.caption("No readings yet — press Play to start the replay.")
+        st.plotly_chart(
+            build_flow_chart(readings, uirevision="replay_chart_v2"),
+            width="stretch",
+            config={"displayModeBar": False},
+            key="replay_flow_chart",
+        )
+
+        # End-of-Day Digest (Section 5.2)
+        digests = _load_digests()
+        render_daily_digest(digests)
 
         # Tickets
         n_tickets = len(tickets)

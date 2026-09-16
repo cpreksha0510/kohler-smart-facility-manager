@@ -5,6 +5,7 @@ Schema matches Section 3 of the PRD exactly.
 All functions accept a db_path string so they are stateless and testable.
 """
 
+import datetime
 import sqlite3
 from pathlib import Path
 
@@ -61,6 +62,16 @@ def init_db(db_path: str) -> None:
                 estimated_water_loss_liters REAL,
                 estimated_cost_impact       REAL,
                 status                      TEXT NOT NULL DEFAULT 'open'
+            )
+        """)
+
+        # ── daily_digests (Section 5.2: End-of-day digest) ───────────────────
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS daily_digests (
+                date            TEXT PRIMARY KEY,
+                digest          TEXT NOT NULL,
+                ticket_count    INTEGER NOT NULL DEFAULT 0,
+                created_at      TEXT NOT NULL
             )
         """)
     conn.close()
@@ -134,3 +145,45 @@ def get_tickets_df(db_path: str) -> pd.DataFrame:
     )
     conn.close()
     return df
+
+
+# ── Daily Digests (Section 5.2) ───────────────────────────────────────────────
+
+def save_daily_digest(db_path: str, date_str: str, digest: str, ticket_count: int = 0) -> None:
+    """Save or update an end-of-day digest for a specific date (YYYY-MM-DD)."""
+    conn = get_connection(db_path)
+    now_iso = datetime.datetime.now().isoformat()
+    with conn:
+        conn.execute("""
+            INSERT OR REPLACE INTO daily_digests (date, digest, ticket_count, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (date_str, digest, ticket_count, now_iso))
+    conn.close()
+
+
+def get_daily_digests(db_path: str) -> dict[str, dict]:
+    """
+    Return all daily digests keyed by date_str (YYYY-MM-DD).
+    Returns {date: {'digest': ..., 'ticket_count': ..., 'created_at': ...}}.
+    """
+    db_path = str(db_path)
+    if not Path(db_path).exists():
+        return {}
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT date, digest, ticket_count, created_at FROM daily_digests ORDER BY date DESC"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    finally:
+        conn.close()
+
+    return {
+        row["date"]: {
+            "digest": row["digest"],
+            "ticket_count": row["ticket_count"],
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    }
