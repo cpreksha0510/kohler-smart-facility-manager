@@ -852,5 +852,32 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 
 **Files changed:** `frontend/components/FlowRateChart.tsx`, `prompts_log.md`, `walkthrough.md`.
 
+---
+
+### Prompt 33 — Dependency Manifest Cleanup & Fresh Clone Run Instructions
+**Date:** 2026-09-19  
+**Branch:** `main`  
+**Prompt given:**
+> requirements.txt is outdated — it still lists streamlit and is missing dependencies the current stack actually needs. Please update it to accurately reflect everything the current backend requires: FastAPI, uvicorn (or whichever ASGI server is being used), google-generativeai, python-dotenv, plus keep pandas/numpy/plotly if still in use by the backend. Remove streamlit if it's genuinely no longer used anywhere in the running application — confirm that first before removing it.
+> 
+> Also, if the new frontend is a separate Node/Next.js app with its own package.json, confirm that file exists and is accurate/up to date too, and that the README's setup instructions cover installing and running BOTH the Python backend and the frontend, in the correct order, with the correct commands.
+> 
+> Show me the updated requirements.txt (and package.json if applicable) plus the exact run instructions a judge would need to follow to get this running from a fresh clone.
+
+**What was built:**
+- **Confirmed Streamlit & Plotly Usage:**
+  - Audited all codebase imports: `streamlit` was only used in the legacy `src/dashboard.py` (from main branch's Streamlit phase). It is not imported by `src/api.py`, `src/detector.py`, `src/simulator.py`, `src/database.py`, `src/llm.py`, or `src/config.py`. The running application uses FastAPI + Next.js. `streamlit` was safely removed.
+  - Confirmed `pandas` and `numpy` are heavily used by the backend detection and API layers and were kept. `plotly` is not in use by the backend and was removed from the active backend requirements.
+- **Updated `requirements.txt`:**
+  - Added `fastapi>=0.110.0`, `uvicorn[standard]>=0.28.0`, `pydantic>=2.0.0`, `python-dotenv>=1.0.0`, `google-generativeai>=0.8.0`, alongside `pandas>=2.0.0` and `numpy>=1.26.0`.
+- **Verified `frontend/package.json`:**
+  - Confirmed all dependencies (`next`, `react`, `react-dom`, `recharts`, `lucide-react`, `tailwindcss`, `typescript`) are accurate and functional.
+- **Rewrote `README.md`:**
+  - Updated project overview to reflect the 17-fixture, 4-zone, 48-hour continuous telemetry architecture.
+  - Provided exact step-by-step setup and run instructions for fresh clones covering both backend (FastAPI on `:8000`) and frontend (Next.js on `:3000`).
+
+**Files changed:** `requirements.txt`, `README.md`, `prompts_log.md`.
+
+
 
 
