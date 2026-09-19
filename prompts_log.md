@@ -714,3 +714,143 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
    - Browser verified: Initial replay state (before Play) shows the clean, full 48-hour timeline with tick marks spanning Jan 15 through Jan 17, completely resolving the degenerate millisecond range.
 
 **Files changed:** `src/dashboard.py`, `prompts_log.md`, `walkthrough.md`.
+
+---
+
+### Prompt 29 — UI Experiment: Modern Next.js + Tailwind + Recharts + FastAPI Command Center
+**Date:** 2026-09-18  
+**Branch:** `ui-experiment`  
+**Prompt given:**
+> Experiment with a new frontend on a separate branch while keeping main untouched. Evaluate realistic options: (1) Full custom React + FastAPI, (2) Lighter framework like Next.js/React + shadcn/ui + FastAPI, (3) Deep Streamlit customization. Recommend one, explain tradeoffs, and implement a plan supporting all existing features: flow charts, tickets table with status management and AI explanations, occupancy heatmap, and chatbot/query feature.
+
+**What was built:**
+- **Evaluated Tradeoffs & Selected Option 2:** Identified that Streamlit reached its architectural ceiling (server-driven script re-execution model prevents smooth replay scrubbing and causes layout fights). Recommended Next.js + Tailwind CSS + Lucide Icons + Recharts with a lean FastAPI service.
+- **FastAPI Layer (`src/api.py`):**
+  - Created REST API on port 8000 with CORS middleware.
+  - Endpoints: `/api/overview`, `/api/readings` (5-min downsampled), `/api/readings/zone-totals`, `/api/occupancy-heatmap`, `/api/tickets`, `PATCH /api/tickets/{id}/status`, `/api/digests`, and `/api/chat`.
+- **Database Status Management (`src/database.py`):**
+  - Added `update_ticket_status()` to persist status updates (`open`, `in_progress`, `resolved`) to SQLite.
+- **Modern Next.js Frontend (`frontend/`):**
+  - **Executive Brand Header:** Live telemetry pill beacon, Terminal 2 metadata, dual view-mode toggle, AI Copilot badge.
+  - **4 Glassmorphic KPI Cards:** Total readings, flagged tickets with alert badge, monitored zones, and cumulative water loss with financial cost impact in INR (₹).
+  - **Recharts Flow Telemetry:** Smooth SVG rendering with zone filter chips and `Zone Totals` / `Per Fixture` modes.
+  - **Occupancy Heatmap Matrix:** Collapsible 24-hour matrix for all 17 fixtures with occupancy rate color gradients and tooltips.
+  - **Interactive Tickets Table:** Live status dropdown selector (`Open` → `In Progress` → `Resolved`) with optimistic UI update and SQLite persistence; filter tabs (`All`, `Open`, `In Progress`, `Resolved`); multi-line wrapped AI incident explanations.
+  - **Replay Simulator (60 FPS):** Client-side timeline scrubber with Play/Pause, Reset, speed toggles, and instant chart/metric filtering without server latency.
+  - **Conversational AI Facility Copilot:** Slide-over sheet drawer powered by Google Gemini with live SQLite context for natural-language operational inquiries.
+- **Verification:**
+  - Automated production build succeeded (`next build`).
+  - Browser subagent verified full dashboard, interactive ticket status update to Resolved, 60 FPS replay scrubbing, and conversational AI Copilot response.
+
+**Files changed:** `src/api.py`, `src/database.py`, `frontend/`, `prompts_log.md`, `walkthrough.md`.
+
+---
+
+### Prompt 30 — Dedicated Tickets Management Tab with Severity Queue & Resolution Notes
+**Date:** 2026-09-18  
+**Branch:** `ui-experiment`  
+**Prompt given:**
+> Since I like the new UI direction, let's continue building on this branch (ui-experiment). Add a new dedicated "Tickets" tab, separate from the main dashboard/graph view.
+> 
+> Structure:
+> 1. ACTIVE TICKETS section: all tickets where status is Open or Dispatched, sorted by severity first (Critical, then High, then Medium, then Low), and within each severity level, most recently flagged first.
+> 2. RESOLVED TICKETS section: separate from active (collapsed by default, or a toggle/filter to view them) — keeps the active view focused while still letting me audit past resolutions.
+> 
+> Per-ticket actions:
+> 1. Change status via a dropdown or button group: Open → Dispatched → Resolved. Persist to SQLite immediately (using the existing `status` field).
+> 2. When marking a ticket as Resolved, prompt for a short resolution note (free text, e.g. "Valve replaced" or "False alarm — sensor recalibrated"). Add a `resolution_note` field to the ticket schema if not already present, store it alongside the status update, and display it in the resolved view.
+> 
+> Filtering:
+> - Filter by zone
+> - Filter by anomaly type
+> - Toggle to show/hide resolved tickets
+> 
+> Keep the existing plain-English explanation per ticket (from the LLM layer) visible in both active and resolved views.
+> 
+> Keep the scope bounded: do not add staff assignment, due dates, or escalation workflows. This is a ticket management view for the facility manager, not a ticketing system rebuild.
+> 
+> When complete, show me a screenshot of the new tab with at least one ticket marked resolved and its resolution note visible.
+
+**What was built:**
+- **Database Schema Migration (`src/database.py`):**
+  - Added `resolution_note TEXT NOT NULL DEFAULT ''` to `tickets` table schema in `init_db()`.
+  - Migrated live `facility.db` with automated column detection (`PRAGMA table_info(tickets)`).
+  - Normalized legacy `in_progress` statuses to `dispatched` in SQLite.
+  - Enhanced `update_ticket_status()` to accept and persist `resolution_note`.
+- **FastAPI Layer (`src/api.py`):**
+  - Updated `TicketStatusUpdate` model to accept `status` (`open`, `dispatched`, `resolved`) and optional `resolution_note`.
+  - `PATCH /api/tickets/{ticket_id}/status` persists the resolution note and returns the updated ticket dictionary.
+- **Dedicated Tickets Tab Frontend (`frontend/components/TicketsView.tsx`):**
+  - **Summary Metrics Strip:** Displays counts for Active Queue, Priority Critical/High, Dispatched, and Resolved tickets.
+  - **Filter Toolbar:** Zone dropdown filter (All Zones, Restroom A, Restroom B, Family Room, Staff WC), Anomaly Type dropdown (All Types, Sustained Leak, Slow Drip, Hygiene Threshold, Sensor Fault), and Toggle Show/Hide Resolved.
+  - **Active Tickets Queue:** Strictly partitioned by status (`open` | `dispatched`) and sorted by Severity Rank first (`Critical: 1` → `High: 2` → `Medium: 3` → `Low: 4`), and within each severity tier sorted descending by `timestamp_flagged`.
+  - **Per-Ticket Actions:** Segmented status buttons (`Open` | `Dispatched` | `Mark Resolved`). Clicking `Dispatched` updates SQLite immediately with a visual indicator.
+  - **Resolution Note Modal Dialog:** Clicking `Mark Resolved` triggers an accessible modal prompting for an audit note, featuring 4 one-click quick suggestion chips (*"Valve replaced"*, *"False alarm — sensor recalibrated"*, *"Supply fitting tightened"*, *"Flapper seal cleaned and tested"*) plus a free-text textarea.
+  - **Resolved Tickets Audit Section:** Separate section displaying resolved tickets, green `Resolved` badge, resolution timestamp, prominent `RESOLUTION AUDIT NOTE` card, and quick `Reopen` capability.
+  - **LLM Explainability Preserved:** AI Analysis card retained on each ticket with responsive line wrapping and zero horizontal overflow.
+- **Top-Level Navigation (`frontend/components/Header.tsx`, `frontend/app/page.tsx`):**
+  - Added primary navigation switcher between `Dashboard` (telemetry, Recharts, heatmap, replay scrubber) and `Tickets` (dedicated management queue with dynamic active counter badge).
+- **Verification:**
+  - Automated production build passed cleanly (`next build` with zero TypeScript errors).
+  - Browser subagent verified navigation, active queue severity sorting, Dispatched status change, resolution note modal interaction with quick chip, and audit trail in Resolved tickets section.
+
+**Files changed:** `src/database.py`, `src/api.py`, `frontend/components/types.ts`, `frontend/components/TicketsView.tsx`, `frontend/components/TicketsTable.tsx`, `frontend/components/Header.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
+
+---
+
+### Prompt 31 — Root Cause Fix for Overview Telemetry Metrics & Replay Demo Graph
+**Date:** 2026-09-19  
+**Branch:** `ui-experiment`  
+**Prompt given:**
+> Several things on the new UI aren't loading real data:
+> 1. The "SENSOR READINGS" metric card is stuck showing "..." (a loading state) instead of the actual reading count.
+> 2. "FLAGGED TICKETS" shows 0, when the database actually has tickets (verified working correctly on the main branch's Streamlit version).
+> 3. The Replay Demo graph isn't rendering at all.
+> 
+> Investigate browser console and network requests, confirm FastAPI reachable, verify endpoints against facility.db, fix root cause, and confirm sensor readings, flagged tickets count, and replay graph all show real data.
+
+**Root cause & Findings:**
+1. **Console & Network Errors:**
+   - Network request `GET http://localhost:3000/api/overview` returned `500 Internal Server Error`.
+   - FastAPI server log revealed: `NameError: name 'in_progress_tickets' is not defined in src/api.py line 117`.
+   - In Prompt 30, `in_progress_tickets` was renamed to `dispatched_tickets` in line 96 of `src/api.py`, but line 117 was left referencing the undefined variable `in_progress_tickets`.
+   - Because `ovRes.ok` was false, `setMetrics()` in `page.tsx` was never called, leaving `metrics` as `null`.
+   - In `MetricCards.tsx`, when `metrics` is null: `readingsCount` displays `"..."` (stuck loading state), and `ticketsCount` defaults to `0`.
+2. **Replay Demo Graph Blank Canvas:**
+   - In `FlowRateChart.tsx`, data was filtered by slicing `zoneTotals` to only items `<= replayCutoffDate`. At initial state (`replayHours = 0`), this produced only 1 single time point (`2024-01-15 00:00`).
+   - In Recharts SVG `<LineChart>`, an SVG `<path>` requires at least two points to draw a line segment; with `dot={false}`, a single point draws zero pixels, resulting in an empty blank canvas.
+   - Additionally, slicing the dataset collapsed the categorical X-axis into a single degenerate point rather than showing the full 48-hour timeline.
+   - **Fix:** Enhanced `FlowRateChart.tsx` to maintain the full 48-hour dataset timeline on the X-axis while dynamically nulling future points (`row[zid] = null` if `timestamp > replayCutoffDate`) with `connectNulls={false}`, `isAnimationActive={!isReplay}` for instantaneous 60 FPS dragging, and `dot={isReplay ? { r: 1.5 } : false}`.
+   - Scaled active sensor readings proportionally in Replay mode (`metrics.sensor_readings_count * progressRatio`).
+
+**Verification:**
+- Endpoint `http://127.0.0.1:8000/api/overview` verified directly via Python: returns 200 OK with `sensor_readings_count: 48960` and `total_tickets_count: 8`.
+- Browser subagent verified live on `http://localhost:3000`:
+  - **Sensor Readings Card:** Displays **48,960** (Loading state `"..."` resolved).
+  - **Flagged Tickets Card:** Displays **8** with `ACTION NEEDED` badge (0 count resolved).
+  - **Replay Demo Graph:** Renders full 48-hour timeline; scrubbing slider and playing simulation dynamically streams lines across the canvas in real time.
+  - **Tickets Tab:** Renders all 8 tickets sorted by severity rank with complete AI incident analysis.
+
+**Files changed:** `src/api.py`, `frontend/components/FlowRateChart.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
+
+---
+
+### Prompt 32 — Clean Continuous Flow Lines (Removed Data Point Markers)
+**Date:** 2026-09-19  
+**Branch:** `ui-experiment`  
+**Prompt given:**
+> On the Flow Rate Telemetry chart (Replay Demo view), please remove the data point markers (dots) that are currently rendering at every point along each line — I just want clean continuous lines, no individual point markers. This applies whether in Zone Totals or Per Fixture mode. Keep the line styling (colors, zone distinction) exactly as-is, only removing the markers.
+
+**What was built:**
+- Updated `frontend/components/FlowRateChart.tsx`:
+  - Set `dot={false}` across all `<Line>` elements in both `chartMode === "zone_total"` and `chartMode === "per_fixture"`.
+  - Preserved line color distinction by zone (`ZONE_COLORS`), stroke dash patterns by fixture type (solid for sinks, dashed for toilets, dotted for urinals), line width hierarchy (2.5px for Sink_01 hero leak), and hover tooltips.
+- **Verification:**
+  - Browser subagent verified live in Replay mode:
+    - In **Zone Totals** mode, lines render as clean, continuous curves across the 48-hour timeline with zero point markers.
+    - In **Per Fixture** mode, solid, dashed, and dotted lines render continuously without dots.
+
+**Files changed:** `frontend/components/FlowRateChart.tsx`, `prompts_log.md`, `walkthrough.md`.
+
+
+

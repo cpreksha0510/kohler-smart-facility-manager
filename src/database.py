@@ -61,9 +61,16 @@ def init_db(db_path: str) -> None:
                 explanation                 TEXT NOT NULL DEFAULT '',
                 estimated_water_loss_liters REAL,
                 estimated_cost_impact       REAL,
-                status                      TEXT NOT NULL DEFAULT 'open'
+                status                      TEXT NOT NULL DEFAULT 'open',
+                resolution_note             TEXT NOT NULL DEFAULT ''
             )
         """)
+
+        # Migration: ensure resolution_note column exists if table was created previously
+        col_rows = conn.execute("PRAGMA table_info(tickets)").fetchall()
+        col_names = [r["name"] for r in col_rows]
+        if "resolution_note" not in col_names:
+            conn.execute("ALTER TABLE tickets ADD COLUMN resolution_note TEXT NOT NULL DEFAULT ''")
 
         # ── daily_digests (Section 5.2: End-of-day digest) ───────────────────
         conn.execute("""
@@ -187,3 +194,28 @@ def get_daily_digests(db_path: str) -> dict[str, dict]:
         }
         for row in rows
     }
+
+
+def update_ticket_status(
+    db_path: str, ticket_id: str, new_status: str, resolution_note: str = None
+) -> bool:
+    """Update the status and optional resolution note of a ticket. Returns True if updated."""
+    db_path = str(db_path)
+    if not Path(db_path).exists():
+        return False
+    conn = get_connection(db_path)
+    with conn:
+        if resolution_note is not None:
+            cursor = conn.execute(
+                "UPDATE tickets SET status = ?, resolution_note = ? WHERE ticket_id = ?",
+                (new_status, resolution_note, ticket_id),
+            )
+        else:
+            cursor = conn.execute(
+                "UPDATE tickets SET status = ? WHERE ticket_id = ?",
+                (new_status, ticket_id),
+            )
+        updated = cursor.rowcount > 0
+    conn.close()
+    return updated
+
