@@ -8,9 +8,12 @@ import {
   Clock,
   Sparkles,
   ChevronDown,
+  ChevronUp,
   Filter,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Ticket } from "./types";
+import { EvidencePanel } from "./EvidencePanel";
 
 interface TicketsTableProps {
   tickets: Ticket[];
@@ -28,6 +31,14 @@ export function TicketsTable({
   const [filterTab, setFilterTab] = useState<"all" | "open" | "dispatched" | "resolved">("all");
   const [statusMenuOpen, setStatusMenuOpen] = useState<string | null>(null);
   const [updatingTicket, setUpdatingTicket] = useState<string | null>(null);
+  const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({});
+
+  const toggleEvidence = (ticketId: string) => {
+    setExpandedEvidence((prev) => ({
+      ...prev,
+      [ticketId]: !prev[ticketId],
+    }));
+  };
 
   const filteredTickets = tickets.filter((t) => {
     if (filterTab === "all") return true;
@@ -264,22 +275,51 @@ export function TicketsTable({
                       <td className="py-3.5 px-4 text-right">{getStatusPill(t)}</td>
                     </tr>
 
-                    {/* AI Explanation Sub-Row (wrapped to prevent horizontal scroll) */}
-                    {t.explanation && (
-                      <tr className="bg-[#12161A]/50 border-b border-white/[0.06]">
-                        <td className="w-1.5" style={{ backgroundColor: `${stripeColor}33` }} />
-                        <td colSpan={9} className="py-2.5 px-3 pr-6">
-                          <div className="flex items-start gap-2.5 max-w-4xl">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#6B8CAE]/15 text-[#6B8CAE] border border-[#6B8CAE]/30 shrink-0 mt-0.5">
-                              <Sparkles className="h-2.5 w-2.5" /> AI Analysis
+                    {/* AI Explanation & Evidence Sub-Row */}
+                    <tr className="bg-[#12161A]/50 border-b border-white/[0.06]">
+                      <td className="w-1.5" style={{ backgroundColor: `${stripeColor}33` }} />
+                      <td colSpan={9} className="py-2.5 px-3 pr-6 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 max-w-5xl">
+                          {t.explanation ? (
+                            <div className="flex items-start gap-2.5 flex-1">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#6B8CAE]/15 text-[#6B8CAE] border border-[#6B8CAE]/30 shrink-0 mt-0.5">
+                                <Sparkles className="h-2.5 w-2.5" /> AI Analysis
+                              </span>
+                              <p className="text-xs text-[#C9D1D9] leading-relaxed whitespace-normal break-words">
+                                {t.explanation}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-[#8B949E]">
+                              Telemetry anomaly recorded.
+                            </div>
+                          )}
+
+                          {/* Evidence Toggle Button */}
+                          <button
+                            onClick={() => toggleEvidence(t.ticket_id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium text-[#C9A873] bg-[#B08D57]/10 hover:bg-[#B08D57]/20 border border-[#B08D57]/30 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
+                          >
+                            <SlidersHorizontal className="h-3 w-3" />
+                            <span>
+                              {expandedEvidence[t.ticket_id] ? "Hide Evidence" : "Why was this flagged?"}
                             </span>
-                            <p className="text-xs text-[#C9D1D9] leading-relaxed whitespace-normal break-words">
-                              {t.explanation}
-                            </p>
+                            {expandedEvidence[t.ticket_id] ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Expandable Evidence Breakdown Panel */}
+                        {expandedEvidence[t.ticket_id] && t.evidence && (
+                          <div className="pt-2">
+                            <EvidencePanel evidence={t.evidence} />
                           </div>
-                        </td>
-                      </tr>
-                    )}
+                        )}
+                      </td>
+                    </tr>
                   </React.Fragment>
                 );
               })

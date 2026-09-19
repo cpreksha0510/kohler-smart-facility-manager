@@ -48,7 +48,7 @@ def init_db(db_path: str) -> None:
             ON sensor_readings (fixture_id, timestamp)
         """)
 
-        # ── tickets (Section 3: Ticket) ────────────────────────────────────────
+        # ── tickets (Section 3: Ticket + Feature 4 Explainability) ────────────
         conn.execute("""
             CREATE TABLE IF NOT EXISTS tickets (
                 ticket_id                   TEXT PRIMARY KEY,
@@ -62,15 +62,18 @@ def init_db(db_path: str) -> None:
                 estimated_water_loss_liters REAL,
                 estimated_cost_impact       REAL,
                 status                      TEXT NOT NULL DEFAULT 'open',
-                resolution_note             TEXT NOT NULL DEFAULT ''
+                resolution_note             TEXT NOT NULL DEFAULT '',
+                evidence_json               TEXT NOT NULL DEFAULT ''
             )
         """)
 
-        # Migration: ensure resolution_note column exists if table was created previously
+        # Migration: ensure resolution_note and evidence_json columns exist if table was created previously
         col_rows = conn.execute("PRAGMA table_info(tickets)").fetchall()
         col_names = [r["name"] for r in col_rows]
         if "resolution_note" not in col_names:
             conn.execute("ALTER TABLE tickets ADD COLUMN resolution_note TEXT NOT NULL DEFAULT ''")
+        if "evidence_json" not in col_names:
+            conn.execute("ALTER TABLE tickets ADD COLUMN evidence_json TEXT NOT NULL DEFAULT ''")
 
         # ── daily_digests (Section 5.2: End-of-day digest) ───────────────────
         conn.execute("""
@@ -104,13 +107,29 @@ def insert_ticket(db_path: str, ticket: dict) -> None:
             INSERT OR REPLACE INTO tickets (
                 ticket_id, timestamp_flagged, zone_id, fixture_id,
                 anomaly_type, severity_score, severity_label, explanation,
-                estimated_water_loss_liters, estimated_cost_impact, status
+                estimated_water_loss_liters, estimated_cost_impact, status,
+                resolution_note, evidence_json
             ) VALUES (
                 :ticket_id, :timestamp_flagged, :zone_id, :fixture_id,
                 :anomaly_type, :severity_score, :severity_label, :explanation,
-                :estimated_water_loss_liters, :estimated_cost_impact, :status
+                :estimated_water_loss_liters, :estimated_cost_impact, :status,
+                :resolution_note, :evidence_json
             )
-        """, ticket)
+        """, {
+            "ticket_id": ticket["ticket_id"],
+            "timestamp_flagged": ticket["timestamp_flagged"],
+            "zone_id": ticket["zone_id"],
+            "fixture_id": ticket["fixture_id"],
+            "anomaly_type": ticket.get("anomaly_type", ""),
+            "severity_score": ticket.get("severity_score"),
+            "severity_label": ticket.get("severity_label", "Flagged"),
+            "explanation": ticket.get("explanation", ""),
+            "estimated_water_loss_liters": ticket.get("estimated_water_loss_liters"),
+            "estimated_cost_impact": ticket.get("estimated_cost_impact"),
+            "status": ticket.get("status", "open"),
+            "resolution_note": ticket.get("resolution_note", ""),
+            "evidence_json": ticket.get("evidence_json", ""),
+        })
     conn.close()
 
 

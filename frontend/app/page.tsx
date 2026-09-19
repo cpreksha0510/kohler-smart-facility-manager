@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { MetricCards } from "@/components/MetricCards";
+import { SustainabilityPanel } from "@/components/SustainabilityPanel";
 import { FlowRateChart } from "@/components/FlowRateChart";
 import { OccupancyHeatmap } from "@/components/OccupancyHeatmap";
 import { TicketsTable } from "@/components/TicketsTable";
@@ -16,6 +17,7 @@ import {
   Ticket,
   DailyDigest,
   OccupancyHeatmapData,
+  SustainabilitySummary,
 } from "@/components/types";
 
 export default function DashboardPage() {
@@ -32,6 +34,7 @@ export default function DashboardPage() {
   const [heatmapData, setHeatmapData] = useState<OccupancyHeatmapData | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [digests, setDigests] = useState<Record<string, DailyDigest>>({});
+  const [sustainability, setSustainability] = useState<SustainabilitySummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Replay Simulator State
@@ -42,13 +45,14 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [ovRes, ztRes, rdRes, hmRes, tkRes, dgRes] = await Promise.all([
+      const [ovRes, ztRes, rdRes, hmRes, tkRes, dgRes, susRes] = await Promise.all([
         fetch("/api/overview"),
         fetch("/api/readings/zone-totals?downsample_mins=5"),
         fetch("/api/readings?downsample_mins=5"),
         fetch("/api/occupancy-heatmap"),
         fetch("/api/tickets"),
         fetch("/api/digests"),
+        fetch("/api/sustainability/summary"),
       ]);
 
       if (ovRes.ok) setMetrics(await ovRes.json());
@@ -57,6 +61,7 @@ export default function DashboardPage() {
       if (hmRes.ok) setHeatmapData(await hmRes.json());
       if (tkRes.ok) setTickets(await tkRes.json());
       if (dgRes.ok) setDigests(await dgRes.json());
+      if (susRes.ok) setSustainability(await susRes.json());
     } catch (err) {
       console.error("Error fetching facility telemetry:", err);
     } finally {
@@ -202,6 +207,9 @@ export default function DashboardPage() {
 
             {/* 2. Top-Level Metric Cards */}
             <MetricCards metrics={activeMetrics} loading={loading} />
+
+            {/* 2b. Feature 2: Sustainability & Water Conservation Impact */}
+            <SustainabilityPanel summary={sustainability} loading={loading} />
 
             {/* 3. Flow Rate Telemetry Chart (Recharts) */}
             <FlowRateChart

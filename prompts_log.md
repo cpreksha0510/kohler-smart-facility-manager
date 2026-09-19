@@ -878,6 +878,84 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 
 **Files changed:** `requirements.txt`, `README.md`, `prompts_log.md`.
 
+---
 
+### Prompt 34 — Feature 4: Explainable Anomaly Detection ("Why was this flagged?")
+**Date:** 2026-09-19  
+**Branch:** `feature-extensions`  
+**Prompt given:**
+> Implement Feature 4 (Explainable Anomaly Detection) from this plan, Section 4 only, following the engineering rules in Section 9 strictly — especially: do not rewrite the detector, do not move classification into Gemini, do not fabricate confidence values (use "Evidence Strength: Strong/Moderate/Weak" per Section 4.4, never a fake statistical confidence percentage).
+> 
+> Specifically:
+> 1. For each ticket, expose the evidence already used in detection: expected flow, observed flow, flow deviation, duration, occupancy, occupancy mismatch, baseline, severity score/label, anomaly type, sensor health, estimated water loss (Section 4.2) — derive these from existing ticket/readings data, don't duplicate the source of truth (Section 4.5).
+> 2. Calculate evidence_strength using the formula in Section 4.4: normalized_flow_deviation*0.30 + normalized_duration*0.25 + occupancy_mismatch*0.25 + sensor_health*0.20, mapped to Strong/Moderate/Weak.
+> 3. Build a "Why was this flagged?" panel/expandable section on each ticket (Section 4.6) showing the evidence breakdown and evidence strength label.
+> 4. The existing Gemini explanation layer can generate the plain-English sentence, but all NUMERIC facts must come from real telemetry data, not the LLM.
+> 
+> Show me your implementation plan first, then a screenshot of the evidence panel on one real ticket once built. Test independently before we move to anything else (Section 9, rule 15).
 
+**What was built:**
+- **Deterministic Evidence Calculation Engine (`src/explainability.py`):**
+  - Implemented Section 4.4 formula: `(norm_flow_dev * 0.30) + (norm_duration * 0.25) + (occ_mismatch * 0.25) + (sensor_health * 0.20)`.
+  - Mapped to transparent labels: `Strong` (>=80.0), `Moderate` (60.0–79.9), `Weak` (<60.0) — zero fabricated statistical confidence percentages.
+  - Extracted physical telemetry metrics (Section 4.2): expected flow, observed flow, peak flow, flow deviation, duration, occupancy rate, occupancy mismatch, sensor health status/score, water loss.
+- **Database Migration & Single Source of Truth (`src/database.py`, `src/detector.py`):**
+  - Added non-destructive SQLite column migration for `evidence_json TEXT DEFAULT ''` on `tickets`.
+  - Updated `session_to_ticket` in `src/detector.py` to embed the structured evidence object into `evidence_json`.
+  - Updated `/api/tickets` in `src/api.py` to parse or dynamically derive `evidence` on the fly.
+- **Dedicated Evidence API (`src/api.py`):**
+  - Added `GET /api/tickets/{ticket_id}/evidence`.
+- **UI Evidence Panel (`frontend/components/EvidencePanel.tsx`):**
+  - Implemented Section 4.3 & 4.6 specification with evidence strength badge, 4 multi-signal progress bars (Flow Deviation, Duration, Occupancy Mismatch, Sensor Diagnostic), physical telemetry facts grid, and transparent formula disclosure.
+  - Embedded expandable accordion into `frontend/components/TicketsView.tsx` (on both Active and Resolved tickets) and `frontend/components/TicketsTable.tsx`.
+- **Testing & Verification:**
+  - Automated unit test passed: verified formula weights and range bounds.
+  - Production build verified: `npm run build` completed with zero errors/warnings.
+  - Browser subagent verified live on `http://localhost:3000`: navigated to Tickets Queue, expanded `TKT-Toilet_B1-202401160443`, and captured visual confirmation screenshot.
+
+**Files changed:** `src/explainability.py`, `src/database.py`, `src/detector.py`, `src/api.py`, `frontend/components/types.ts`, `frontend/components/EvidencePanel.tsx`, `frontend/components/TicketsView.tsx`, `frontend/components/TicketsTable.tsx`, `prompts_log.md`.
+
+---
+
+### Prompt 35 — Feature 2: Water-Savings & Sustainability Impact
+**Date:** 2026-09-19  
+**Branch:** `feature-extensions`  
+**Prompt given:**
+> @KOHLER_Track2_Feature_Implementation_Plan.md
+> 
+> Phase 1 (explainability) is done and verified. Now implement Feature 2 (Water-Savings / Sustainability Impact), Section 2 of the plan, extending the existing water-loss/cost fields — do not duplicate them.
+> 
+> 1. Incident projection (Section 2.2): for active tickets, calculate projected loss at 1hr/6hr/24hr/7day horizons using observed_flow_lpm * projection_duration_minutes.
+> 2. Prevented waste on resolution (Section 2.3): when a ticket is marked Resolved, calculate estimated_water_saved = potential_loss_without_intervention - actual_loss_before_resolution. Label this clearly as "Estimated water saved" (simulation-based counterfactual) per Section 9 rule 5/6 — never call it "actual savings."
+> 3. Facility-level summary (Section 2.4): total water wasted, estimated water saved, cost impact, avoided cost, projected unresolved waste, highest-waste fixture, highest-waste zone.
+> 4. Add a Sustainability panel to the UI (Section 2.7) and the intervention impact section on resolved tickets.
+> 5. Use the simpler approach in Section 2.5 — calculate dynamically from existing fields, no new database table unless truly needed.
+> 
+> Show me your plan first, then a screenshot of the Sustainability panel and one resolved ticket showing intervention impact. Test independently before moving further.
+
+**What was built:**
+- **Dynamic Sustainability Engine (`src/sustainability.py`):**
+  - Implemented Section 2.2: incident runaway loss projections across +1h, +6h, +24h, and +7d horizons based on `observed_flow_lpm * minutes` with municipal water tariff (₹0.05/L).
+  - Implemented Section 2.3: counterfactual avoided waste engine based on a 24-hour unassisted inspection baseline ($1,440\text{ min}$). Strictly labeled as "Estimated water saved (counterfactual simulation model)" per Section 9 Rules 5 & 6 (never "actual savings").
+  - Implemented Section 2.4 & 2.6: facility-level aggregation calculating total water wasted, estimated water saved, utility cost impact, avoided cost, unaddressed runaway risks (+24h & +7d), primary loss hotspot fixture/zone, and zone-level conservation metrics.
+  - Implemented Section 2.5: dynamic derivation from existing `tickets` records and telemetry fields—zero new database tables or schema bloat.
+- **Backend API Integration (`src/api.py`):**
+  - Added endpoint `GET /api/sustainability/summary`.
+  - Enriched `GET /api/tickets`: attaches runaway horizon projections to active tickets and counterfactual intervention impact to resolved tickets.
+- **Frontend Types & State (`frontend/components/types.ts`):**
+  - Added `ProjectionHorizon`, `InterventionImpact`, `TicketSustainability`, `ZoneSustainability`, and `SustainabilitySummary` interfaces.
+- **Sustainability Dashboard Panel (`frontend/components/SustainabilityPanel.tsx`):**
+  - Executive KPI panel with 4 cards: Water Waste Volume, Estimated Water Saved (Counterfactual), Unaddressed Risk (+24h Runaway), Primary Loss Hotspot (`Sink_01` in Restroom A).
+  - Rendered zone conservation breakdown list and transparent methodology note citing the 24-hour baseline and municipal tariff.
+- **Ticket Queue UI Enhancements (`frontend/components/TicketsView.tsx`):**
+  - Active tickets: Embedded interactive "If Left Unresolved (Runaway Waste Horizon)" projection ticker (+1h, +6h, +24h, +7d).
+  - Resolved tickets: Embedded prominent "Intervention Impact" card displaying Actual Water Lost, Estimated Water Saved, and Estimated Avoided Cost.
+- **Main Dashboard Integration (`frontend/app/page.tsx`):**
+  - Added parallel `fetch("/api/sustainability/summary")` and rendered `SustainabilityPanel` directly under metric cards.
+- **Testing & Visual Verification:**
+  - Formula validation unit test passed: 3.5 LPM produces exactly 210 L (1h), 1,260 L (6h), 5,040 L (24h), and 35,280 L (7d).
+  - Production build: `npm run build` compiled clean in 8.7s with zero TypeScript errors.
+  - Browser subagent verified live on `http://localhost:3000`: captured screenshots of the dashboard Sustainability Panel (`sustainability_panel_verified_1789827792375.png`) and resolved ticket `TKT-Sink_01-202401160405` showing the Intervention Impact section (`intervention_impact_resolved_ticket_1789827897151.png`).
+
+**Files changed:** `src/sustainability.py`, `src/api.py`, `frontend/components/types.ts`, `frontend/components/SustainabilityPanel.tsx`, `frontend/components/TicketsView.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
 

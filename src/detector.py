@@ -46,6 +46,7 @@ Section 4e — Cost impact:
 Interview explanations embedded below each function.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -67,6 +68,7 @@ from src.config import (
     ANOMALY_SLOW_DRIP,
 )
 from src.database import get_readings_df, get_tickets_df, insert_ticket, save_daily_digest
+from src.explainability import build_ticket_evidence
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -455,6 +457,13 @@ def session_to_ticket(session: dict) -> dict:
         ts_fmt = str(ts_str).replace("-", "").replace(":", "").replace(" ", "")[:12]
         ts_iso = str(ts_str)
 
+    evidence = build_ticket_evidence({
+        "anomaly_type": session.get("anomaly_type", "sustained_leak"),
+        "severity_score": session.get("severity_score"),
+        "severity_label": session.get("severity_label", "Flagged"),
+        "estimated_water_loss_liters": water_loss,
+    }, session_dict=session)
+
     return {
         "ticket_id":                   f"TKT-{session['fixture_id']}-{ts_fmt}",
         "timestamp_flagged":           ts_iso,
@@ -472,6 +481,9 @@ def session_to_ticket(session: dict) -> dict:
         "avg_flow_lpm":                avg_flow,
         "max_flow_lpm":                session.get("max_flow_lpm", avg_flow),
         "avg_baseline_mean":           session.get("avg_baseline_mean", 0.0),
+        # Feature 4 Explainability evidence
+        "evidence":                    evidence,
+        "evidence_json":               json.dumps(evidence),
     }
 
 

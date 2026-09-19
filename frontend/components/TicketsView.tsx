@@ -16,8 +16,11 @@ import {
   Check,
   X,
   FileText,
+  SlidersHorizontal,
+  TrendingDown,
 } from "lucide-react";
 import { Ticket } from "./types";
+import { EvidencePanel } from "./EvidencePanel";
 
 interface TicketsViewProps {
   tickets: Ticket[];
@@ -60,6 +63,15 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
   const [resolvingTicket, setResolvingTicket] = useState<Ticket | null>(null);
   const [resolutionNote, setResolutionNote] = useState<string>("");
   const [isSubmittingResolution, setIsSubmittingResolution] = useState(false);
+
+  // Evidence panel expansion state (Feature 4 Explainability)
+  const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({});
+  const toggleEvidence = (ticketId: string) => {
+    setExpandedEvidence((prev) => ({
+      ...prev,
+      [ticketId]: !prev[ticketId],
+    }));
+  };
 
   // ── Sorting & Partitioning ──────────────────────────────────────────────────
   // Active: status is 'open' or 'dispatched'
@@ -331,6 +343,58 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                     </div>
                   </div>
 
+                  {/* Feature 2: Unresolved Runaway Waste Projection (Section 2.2) */}
+                  {t.sustainability?.projections && (
+                    <div className="mt-2.5 p-2.5 bg-[#0D1117] rounded-lg border border-white/[0.04] text-xs">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] text-[#8B949E] uppercase tracking-wider font-semibold flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 text-[#D99B26]" /> If Left Unresolved (Runaway Waste Horizon)
+                        </span>
+                        <span className="text-[10px] text-[#8B949E] font-mono">
+                          Flow: {t.evidence?.observed_flow_lpm.toFixed(2)} L/m
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
+                          <span className="text-[10px] text-[#8B949E] block">+1 Hour</span>
+                          <span className="font-mono text-white font-semibold">
+                            {t.sustainability.projections["1h"].projected_loss_liters} L
+                          </span>
+                          <span className="text-[9px] text-[#8B949E] block">
+                            ₹{t.sustainability.projections["1h"].projected_cost_inr.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
+                          <span className="text-[10px] text-[#8B949E] block">+6 Hours</span>
+                          <span className="font-mono text-white font-semibold">
+                            {t.sustainability.projections["6h"].projected_loss_liters} L
+                          </span>
+                          <span className="text-[9px] text-[#8B949E] block">
+                            ₹{t.sustainability.projections["6h"].projected_cost_inr.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="bg-[#D99B26]/5 p-1.5 rounded border border-[#D99B26]/20">
+                          <span className="text-[10px] text-[#D99B26] font-medium block">+24 Hours</span>
+                          <span className="font-mono text-[#D99B26] font-bold">
+                            {t.sustainability.projections["24h"].projected_loss_liters} L
+                          </span>
+                          <span className="text-[9px] text-[#D99B26]/80 block">
+                            ₹{t.sustainability.projections["24h"].projected_cost_inr.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
+                          <span className="text-[10px] text-[#8B949E] block">+7 Days</span>
+                          <span className="font-mono text-white font-semibold">
+                            {t.sustainability.projections["7d"].projected_loss_liters.toLocaleString()} L
+                          </span>
+                          <span className="text-[9px] text-[#8B949E] block">
+                            ₹{t.sustainability.projections["7d"].projected_cost_inr.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* AI Analysis Explanation Sub-card */}
                   {t.explanation && (
                     <div className="mt-2 pt-3 border-t border-white/[0.06] bg-[#12161A]/60 rounded-lg p-3 border border-white/[0.04]">
@@ -343,6 +407,44 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                         </p>
                       </div>
                     </div>
+                  )}
+
+                  {/* Feature 4: Explainable Anomaly Detection ("Why was this flagged?") */}
+                  <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      onClick={() => toggleEvidence(t.ticket_id)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-[#C9A873] bg-[#B08D57]/10 hover:bg-[#B08D57]/20 border border-[#B08D57]/30 transition-all cursor-pointer"
+                    >
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      <span>{expandedEvidence[t.ticket_id] ? "Hide Evidence Breakdown" : "Why was this flagged?"}</span>
+                      {expandedEvidence[t.ticket_id] ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+
+                    {t.evidence && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#8B949E]">
+                        <span>Evidence Strength:</span>
+                        <strong
+                          className={
+                            t.evidence.evidence_strength_label === "Strong"
+                              ? "text-[#789A8B]"
+                              : t.evidence.evidence_strength_label === "Moderate"
+                              ? "text-[#D99B26]"
+                              : "text-[#847E9C]"
+                          }
+                        >
+                          {t.evidence.evidence_strength_label}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expandable Evidence Breakdown Panel */}
+                  {expandedEvidence[t.ticket_id] && t.evidence && (
+                    <EvidencePanel evidence={t.evidence} />
                   )}
                 </div>
               );
@@ -414,11 +516,90 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                     </div>
                   </div>
 
+                  {/* Feature 2: Intervention Impact (Section 2.7) */}
+                  {t.sustainability?.intervention_impact && (
+                    <div className="mt-2.5 p-3 bg-gradient-to-r from-emerald-950/40 via-[#789A8B]/10 to-transparent border border-[#789A8B]/30 rounded-lg text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#98BAAB] text-[11px]">
+                          <TrendingDown className="h-3.5 w-3.5" /> Intervention Impact
+                        </span>
+                        <span className="text-[10px] text-[#8B949E] font-mono">
+                          Counterfactual 24h Baseline Model
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 py-1">
+                        <div className="bg-[#0D1117]/70 p-2 rounded border border-white/[0.04]">
+                          <span className="text-[10px] text-[#8B949E] block uppercase">Actual Water Lost</span>
+                          <span className="font-mono font-bold text-white text-sm">
+                            {t.sustainability.intervention_impact.actual_loss_liters.toFixed(1)} L
+                          </span>
+                        </div>
+                        <div className="bg-[#0D1117]/70 p-2 rounded border border-[#789A8B]/30">
+                          <span className="text-[10px] text-[#98BAAB] block uppercase font-medium">Estimated Water Saved</span>
+                          <span className="font-mono font-bold text-[#98BAAB] text-sm">
+                            +{t.sustainability.intervention_impact.estimated_water_saved_liters.toFixed(1)} L
+                          </span>
+                        </div>
+                        <div className="bg-[#0D1117]/70 p-2 rounded border border-[#789A8B]/30">
+                          <span className="text-[10px] text-[#98BAAB] block uppercase font-medium">Estimated Avoided Cost</span>
+                          <span className="font-mono font-bold text-[#98BAAB] text-sm">
+                            ₹{t.sustainability.intervention_impact.avoided_cost_inr.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] text-[#8B949E] italic">
+                        Prompt technician resolution prevented an estimated additional{" "}
+                        {t.sustainability.intervention_impact.estimated_water_saved_liters.toFixed(1)} Litres from escaping during
+                        the standard 24-hour unassisted inspection cycle.
+                      </p>
+                    </div>
+                  )}
+
                   {/* AI Explanation preserved */}
                   {t.explanation && (
                     <div className="mt-2 text-xs text-[#8B949E] italic pl-2 border-l-2 border-white/10">
                       Incident Summary: {t.explanation}
                     </div>
+                  )}
+
+                  {/* Feature 4: Explainable Anomaly Detection ("Why was this flagged?") */}
+                  <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      onClick={() => toggleEvidence(t.ticket_id)}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium text-[#C9A873] bg-[#B08D57]/10 hover:bg-[#B08D57]/20 border border-[#B08D57]/30 transition-all cursor-pointer"
+                    >
+                      <SlidersHorizontal className="h-3 w-3" />
+                      <span>{expandedEvidence[t.ticket_id] ? "Hide Evidence" : "Why was this flagged?"}</span>
+                      {expandedEvidence[t.ticket_id] ? (
+                        <ChevronUp className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                    </button>
+
+                    {t.evidence && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#8B949E]">
+                        <span>Evidence Strength:</span>
+                        <strong
+                          className={
+                            t.evidence.evidence_strength_label === "Strong"
+                              ? "text-[#789A8B]"
+                              : t.evidence.evidence_strength_label === "Moderate"
+                              ? "text-[#D99B26]"
+                              : "text-[#847E9C]"
+                          }
+                        >
+                          {t.evidence.evidence_strength_label}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expandable Evidence Breakdown Panel */}
+                  {expandedEvidence[t.ticket_id] && t.evidence && (
+                    <EvidencePanel evidence={t.evidence} />
                   )}
                 </div>
               ))}

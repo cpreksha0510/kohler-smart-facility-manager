@@ -29,6 +29,12 @@ from src.database import (
     get_connection, get_readings_df, get_tickets_df,
     get_daily_digests, update_ticket_status,
 )
+from src.explainability import build_ticket_evidence
+from src.sustainability import (
+    calculate_facility_sustainability_summary,
+    calculate_incident_projection,
+    calculate_intervention_impact,
+)
 from src.llm import get_gemini_model
 
 app = FastAPI(
@@ -233,6 +239,33 @@ def get_tickets():
         if isinstance(t.get("timestamp_flagged"), (pd.Timestamp, datetime.datetime)):
             t["timestamp_flagged"] = t["timestamp_flagged"].isoformat()
 
+        # Feature 4: Explainable Anomaly Detection evidence breakdown
+        ev_json = t.get("evidence_json")
+        if ev_json and isinstance(ev_json, str) and ev_json.strip():
+            try:
+                t["evidence"] = json.loads(ev_json)
+            except Exception:
+                t["evidence"] = build_ticket_evidence(t)
+        else:
+            t["evidence"] = build_ticket_evidence(t)
+
+        # Feature 2: Sustainability Impact (Incident projections or intervention impact)
+        flow_lpm = float(t["evidence"].get("observed_flow_lpm") or 0.0)
+        dur_min = int(t["evidence"].get("duration_minutes") or 0)
+        actual_loss = float(t.get("estimated_water_loss_liters") or (flow_lpm * dur_min))
+        status = str(t.get("status", "open")).lower()
+
+        if status == "resolved":
+            t["sustainability"] = {
+                "type": "resolved",
+                "intervention_impact": calculate_intervention_impact(actual_loss, flow_lpm, dur_min),
+            }
+        else:
+            t["sustainability"] = {
+                "type": "active",
+                "projections": calculate_incident_projection(flow_lpm),
+            }
+
     return tickets
 
 
@@ -262,6 +295,34 @@ def patch_ticket_status(ticket_id: str, body: TicketStatusUpdate):
         "resolution_note": body.resolution_note or "",
         "updated_at": datetime.datetime.now().isoformat(),
     }
+
+
+@app.get("/api/tickets/{ticket_id}/evidence")
+def get_ticket_evidence_endpoint(ticket_id: str):
+    """Return Section 4 explainability evidence breakdown for a specific ticket."""
+    df = get_tickets_df(str(DB_PATH))
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No tickets found.")
+    
+    match = df[df["ticket_id"] == ticket_id]
+    if match.empty:
+        raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found.")
+    
+    t = match.iloc[0].to_dict()
+    ev_json = t.get("evidence_json")
+    if ev_json and isinstance(ev_json, str) and ev_json.strip():
+        try:
+            return json.loads(ev_json)
+        except Exception:
+            pass
+    return build_ticket_evidence(t)
+
+
+@app.get("/api/sustainability/summary")
+def get_sustainability_summary_endpoint():
+    """Return facility-level sustainability and water-conservation impact summary (Section 2.4 & 2.6)."""
+    tickets = get_tickets()
+    return calculate_facility_sustainability_summary(tickets)
 
 
 # ── Daily Digests ─────────────────────────────────────────────────────────────
