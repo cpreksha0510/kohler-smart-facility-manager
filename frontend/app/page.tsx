@@ -6,9 +6,7 @@ import { MetricCards } from "@/components/MetricCards";
 import { SustainabilityPanel } from "@/components/SustainabilityPanel";
 import { FlowRateChart } from "@/components/FlowRateChart";
 import { OccupancyHeatmap } from "@/components/OccupancyHeatmap";
-import { TicketsTable } from "@/components/TicketsTable";
 import { TicketsView } from "@/components/TicketsView";
-import { DailyDigestCard } from "@/components/DailyDigestCard";
 import { ReplayScrubber } from "@/components/ReplayScrubber";
 import { AiCopilotDrawer } from "@/components/AiCopilotDrawer";
 import {
@@ -21,7 +19,7 @@ import {
 } from "@/components/types";
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "tickets">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "tickets" | "sustainability">("dashboard");
   const [viewMode, setViewMode] = useState<"full" | "replay">("full");
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
@@ -180,15 +178,21 @@ export default function DashboardPage() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-6 space-y-6">
-        {activeTab === "tickets" ? (
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+        {activeTab === "tickets" && (
           <TicketsView
             tickets={tickets}
             onStatusChange={handleTicketStatusChange}
             loading={loading}
           />
-        ) : (
-          <>
+        )}
+
+        {activeTab === "sustainability" && (
+          <SustainabilityPanel summary={sustainability} loading={loading} />
+        )}
+
+        {activeTab === "dashboard" && (
+          <div className="space-y-8">
             {/* Replay Scrubber Banner (if replay mode) */}
             {viewMode === "replay" && (
               <ReplayScrubber
@@ -205,13 +209,10 @@ export default function DashboardPage() {
               />
             )}
 
-            {/* 2. Top-Level Metric Cards */}
+            {/* 1. Top-Level Metric Cards (4 cards) */}
             <MetricCards metrics={activeMetrics} loading={loading} />
 
-            {/* 2b. Feature 2: Sustainability & Water Conservation Impact */}
-            <SustainabilityPanel summary={sustainability} loading={loading} />
-
-            {/* 3. Flow Rate Telemetry Chart (Recharts) */}
+            {/* 2. Flow Rate Telemetry Chart (Recharts) */}
             <FlowRateChart
               readings={readings}
               zoneTotals={zoneTotals}
@@ -220,20 +221,9 @@ export default function DashboardPage() {
               replayCutoffDate={replayCutoffDate}
             />
 
-            {/* 4. Occupancy Heatmap (17 fixtures x 24h) */}
+            {/* 3. Occupancy Heatmap (17 fixtures x 24h) */}
             <OccupancyHeatmap data={heatmapData} loading={loading} />
-
-            {/* 5. End-of-Day Operational Digest Card */}
-            <DailyDigestCard digests={digests} />
-
-            {/* 6. Flagged Anomaly Tickets Table */}
-            <TicketsTable
-              tickets={activeTickets}
-              onStatusChange={handleTicketStatusChange}
-              loading={loading}
-              onNavigateToTickets={() => setActiveTab("tickets")}
-            />
-          </>
+          </div>
         )}
       </main>
 

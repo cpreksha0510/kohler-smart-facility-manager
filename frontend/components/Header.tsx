@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { Activity, Sparkles, Sliders, Layers, LayoutDashboard, Ticket } from "lucide-react";
+import { Activity, Sparkles, Sliders, Layers, LayoutDashboard, Ticket, Leaf } from "lucide-react";
 
 interface HeaderProps {
-  activeTab: "dashboard" | "tickets";
-  setActiveTab: (tab: "dashboard" | "tickets") => void;
+  activeTab: "dashboard" | "tickets" | "sustainability";
+  setActiveTab: (tab: "dashboard" | "tickets" | "sustainability") => void;
   viewMode: "full" | "replay";
   setViewMode: (mode: "full" | "replay") => void;
   openCopilot: () => void;
@@ -47,7 +47,7 @@ export function Header({
         {/* Navigation & Action Controls */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           {/* Main Navigation Tabs */}
-          <nav className="flex items-center bg-[#0D1117] p-1 rounded-xl border border-white/[0.08] shadow-inner">
+          <nav className="flex items-center bg-[#0D1117] p-1 rounded-xl border border-white/[0.08] shadow-inner gap-1">
             <button
               id="nav-tab-dashboard"
               onClick={() => setActiveTab("dashboard")}
@@ -76,6 +76,18 @@ export function Header({
                   {openTicketsCount}
                 </span>
               )}
+            </button>
+            <button
+              id="nav-tab-sustainability"
+              onClick={() => setActiveTab("sustainability")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === "sustainability"
+                  ? "bg-[#21262D] text-[#98BAAB] shadow-sm font-semibold border border-[#789A8B]/30"
+                  : "text-[#8B949E] hover:text-white"
+              }`}
+            >
+              <Leaf className="h-3.5 w-3.5 text-[#789A8B]" />
+              <span>Sustainability</span>
             </button>
           </nav>
 

@@ -959,3 +959,42 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 
 **Files changed:** `src/sustainability.py`, `src/api.py`, `frontend/components/types.ts`, `frontend/components/SustainabilityPanel.tsx`, `frontend/components/TicketsView.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
 
+---
+
+### Prompt 36 — Dashboard Decluttering & Dedicated Sustainability Tab
+**Date:** 2026-09-19  
+**Branch:** `feature-extensions`  
+**Prompt given:**
+> The dashboard currently feels cluttered because too much is visible simultaneously on one screen. Please restructure with these changes:
+> 
+> 1. Move the entire "Sustainability & Water Conservation Impact" section (all 4 metric cards, zone conservation breakdown, and methodology note) into its OWN dedicated tab — following the same tab pattern already used for Dashboard/Tickets/AI Copilot. This removes it from the main dashboard scroll entirely.
+> 2. On the main Dashboard tab, keep only the top 4 metric cards (Sensor Readings, Flagged Tickets, Monitored Zones, Estimated Water Loss) plus the flow telemetry chart and occupancy heatmap — nothing else.
+> 3. On the new Sustainability tab, make the "Conservation Methodology" explanation collapsed by default (an expandable accordion or info tooltip the user can click to reveal), not permanently visible text.
+> 4. Increase vertical spacing between distinct sections generally (more breathing room between the top metric row and whatever comes below it), so sections read as visually separate rather than stacked tightly together.
+> 5. Where a card has both a main number and a supporting sub-line (e.g., "1,057 L" + "₹52.85 municipal tariff impact" + "Measured across all flagged anomaly sessions"), keep the number and ONE short supporting line — trim to the single most useful piece of context, not two stacked captions.
+> 
+> Show me a screenshot of the simplified main Dashboard tab and the new separate Sustainability tab.
+
+**What was built:**
+- **Navigation Enhancement (`frontend/components/Header.tsx`):**
+  - Expanded `activeTab` to `"dashboard" | "tickets" | "sustainability"`.
+  - Added dedicated `Sustainability` tab button with `Leaf` icon and active border glow, seamlessly matching Dashboard and Tickets tab styling.
+- **Main Dashboard Simplification (`frontend/app/page.tsx`):**
+  - Removed Sustainability panel, duplicate tickets table, and operational digest from the main Dashboard tab.
+  - Retained strictly the top 4 metric cards (Sensor Readings, Flagged Tickets, Monitored Zones, Estimated Water Loss), the Flow Rate Telemetry chart, and the Occupancy Heatmap.
+  - Increased vertical spacing across sections to `space-y-8` (and `py-8`), creating generous, clean breathing room.
+- **Dedicated Sustainability Tab View (`frontend/components/SustainabilityPanel.tsx`):**
+  - Formatted as a full dedicated page tab with executive header banner and model indicator.
+  - Trimmed all 4 impact cards to strictly ONE concise supporting line (eliminated stacked secondary captions):
+    - *Water Waste Volume:* `1,057 L` + `₹52.85 municipal tariff impact`
+    - *Estimated Water Saved:* `4,633.1 L` + `₹231.65 estimated avoided cost`
+    - *Unaddressed Risk (+24h):* `+11,030.4 L` + `+₹551.52 if unresolved for 24h`
+    - *Primary Loss Hotspot:* `Sink_01` + `Restroom A · 968 L lost`
+  - Replaced permanently visible methodology footer with an expandable accordion (`id="toggle-methodology-accordion"`), collapsed by default with clear toggle cues.
+- **Verification:**
+  - `npm run build` compiled clean in 3.7s with 0 errors.
+  - Browser subagent captured live screenshots of both the simplified Dashboard tab (`simplified_dashboard_tab_1789830830703.png`) and the new dedicated Sustainability tab (`sustainability_tab_expanded_1789830901924.png`).
+
+**Files changed:** `frontend/components/Header.tsx`, `frontend/components/SustainabilityPanel.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
+
+
