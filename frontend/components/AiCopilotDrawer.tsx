@@ -73,6 +73,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
 
       setMessages((prev) => [...prev, copilotMsg]);
     } catch (err) {
+      console.error("AI Copilot request error:", err);
       setMessages((prev) => [
         ...prev,
         {
@@ -95,7 +96,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
     return parts.map((part, i) => {
       if (part.startsWith("**") && part.endsWith("**")) {
         return (
-          <strong key={i} className="text-[#C5A059] font-semibold">
+          <strong key={i} className="text-[#D4A359] font-semibold">
             {part.slice(2, -2)}
           </strong>
         );
@@ -114,15 +115,15 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
 
       {/* Slide-over Drawer Panel */}
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#161B22] border-l border-white/10 shadow-2xl flex flex-col">
+        <div className="w-screen max-w-md bg-[#141A22] border-l border-white/10 shadow-2xl flex flex-col">
           {/* Drawer Header */}
-          <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#12161A]/80">
+          <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#10141A]/90">
             <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-[#C5A059]/15 border border-[#C5A059]/30 flex items-center justify-center text-[#C5A059]">
+              <div className="h-7 w-7 rounded-lg bg-[#D4A359]/15 border border-[#D4A359]/30 flex items-center justify-center text-[#D4A359]">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white tracking-wide">
+                <h3 className="text-sm font-bold text-[#F0F6FC] tracking-wide">
                   AI Facility Copilot
                 </h3>
                 <p className="text-[11px] text-[#8B949E]">Google Gemini with SQLite Telemetry</p>
@@ -130,19 +131,19 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-[#8B949E] hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-[#8B949E] hover:text-[#F0F6FC] hover:bg-white/10 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* Quick Prompts */}
-          <div className="px-4 py-2.5 bg-[#0D1117] border-b border-white/[0.06] overflow-x-auto flex gap-2 no-scrollbar">
+          <div className="px-4 py-2.5 bg-[#0B0F14] border-b border-white/[0.06] overflow-x-auto flex gap-2 no-scrollbar">
             {quickPrompts.map((qp, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(qp)}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] bg-white/[0.04] hover:bg-white/[0.1] text-[#C9D1D9] hover:text-white border border-white/[0.08] transition-all shrink-0"
+                className="whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] bg-white/[0.04] hover:bg-white/[0.1] text-[#C9D1D9] hover:text-[#F0F6FC] border border-white/[0.08] transition-all shrink-0"
               >
                 {qp}
               </button>
@@ -157,19 +158,19 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
                 className={`flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {msg.sender === "copilot" && (
-                  <div className="h-7 w-7 rounded-full bg-[#6B8CAE]/20 border border-[#6B8CAE]/40 flex items-center justify-center text-[#6B8CAE] shrink-0 mt-0.5">
+                  <div className="h-7 w-7 rounded-full bg-[#4D88C7]/20 border border-[#4D88C7]/40 flex items-center justify-center text-[#4D88C7] shrink-0 mt-0.5">
                     <Bot className="h-3.5 w-3.5" />
                   </div>
                 )}
                 <div
                   className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${
                     msg.sender === "user"
-                      ? "bg-[#6B8CAE] text-white rounded-br-none"
-                      : "bg-[#1F242C] text-[#C9D1D9] border border-white/[0.08] rounded-bl-none"
+                      ? "bg-[#4D88C7] text-white rounded-br-none"
+                      : "bg-[#1B222C] text-[#C9D1D9] border border-white/[0.08] rounded-bl-none"
                   }`}
                 >
                   <p className="whitespace-pre-line">{renderFormattedText(msg.text)}</p>
-                  <span className="text-[10px] text-white/50 block text-right mt-1 font-mono">
+                  <span className="text-[10px] text-white/60 block text-right mt-1 font-mono">
                     {msg.time}
                   </span>
                 </div>
@@ -183,14 +184,14 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
 
             {loading && (
               <div className="flex gap-3 justify-start items-center text-xs text-[#8B949E]">
-                <div className="h-7 w-7 rounded-full bg-[#6B8CAE]/20 border border-[#6B8CAE]/40 flex items-center justify-center text-[#6B8CAE] shrink-0">
+                <div className="h-7 w-7 rounded-full bg-[#4D88C7]/20 border border-[#4D88C7]/40 flex items-center justify-center text-[#4D88C7] shrink-0">
                   <Bot className="h-3.5 w-3.5 animate-spin" />
                 </div>
-                <div className="bg-[#1F242C] border border-white/[0.08] rounded-xl px-3.5 py-2">
+                <div className="bg-[#1B222C] border border-white/[0.08] rounded-xl px-3.5 py-2">
                   <span className="inline-flex gap-1 items-center">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#C5A059] animate-bounce" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#C5A059] animate-bounce [animation-delay:0.2s]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#C5A059] animate-bounce [animation-delay:0.4s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D4A359] animate-bounce" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D4A359] animate-bounce [animation-delay:0.2s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D4A359] animate-bounce [animation-delay:0.4s]" />
                   </span>
                 </div>
               </div>
@@ -199,25 +200,25 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
           </div>
 
           {/* Chat Input Bar */}
-          <div className="p-3 border-t border-white/[0.08] bg-[#12161A]">
+          <div className="p-3 border-t border-white/[0.08] bg-[#10141A]">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend();
               }}
-              className="flex items-center gap-2 bg-[#161B22] border border-white/15 rounded-lg px-3 py-1.5 focus-within:border-[#C5A059] transition-all"
+              className="flex items-center gap-2 bg-[#141A22] border border-white/15 rounded-lg px-3 py-1.5 focus-within:border-[#D4A359] transition-all"
             >
               <input
                 type="text"
                 placeholder="Ask about water waste, leaks, or tickets..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="flex-1 bg-transparent text-xs text-white placeholder-[#8B949E] focus:outline-none"
+                className="flex-1 bg-transparent text-xs text-[#F0F6FC] placeholder-[#8B949E] focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={!inputText.trim() || loading}
-                className="p-1.5 rounded bg-[#C5A059] hover:bg-[#C5A059]/90 disabled:opacity-30 text-black transition-all"
+                className="p-1.5 rounded bg-[#D4A359] hover:bg-[#D4A359]/90 disabled:opacity-30 text-black transition-all"
               >
                 <Send className="h-3 w-3" />
               </button>

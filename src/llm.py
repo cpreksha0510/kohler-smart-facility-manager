@@ -70,7 +70,7 @@ def get_gemini_model() -> Optional[Any]:
 
         # Attempt primary model first, fallback if rejected by API
         selected_model = None
-        for candidate in [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK, "gemini-3.6-flash"]:
+        for candidate in [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK, "gemini-flash-latest"]:
             try:
                 m = genai.GenerativeModel(
                     candidate,
@@ -79,7 +79,6 @@ def get_gemini_model() -> Optional[Any]:
                         "temperature": 0.2,
                     },
                 )
-                # Quick test check
                 selected_model = m
                 break
             except Exception as ex:
@@ -99,6 +98,50 @@ def get_gemini_model() -> Optional[Any]:
         logger.error(f"Error initializing Gemini client: {e}")
         _model_initialized = True
         _cached_model = None
+        return None
+
+
+# Global copilot model cache
+_cached_copilot_model = None
+
+
+def get_copilot_model() -> Optional[Any]:
+    """
+    Initialize and return a Generative AI model instance configured for facility copilot chat.
+    Uses text format (without forcing JSON MIME type) with low temperature and bounded tokens
+    for low-latency, grounded conversational responses.
+    """
+    global _cached_copilot_model
+
+    if _cached_copilot_model is not None:
+        return _cached_copilot_model
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=api_key)
+
+        for candidate in [GEMINI_MODEL_PRIMARY, GEMINI_MODEL_FALLBACK, "gemini-flash-latest"]:
+            try:
+                m = genai.GenerativeModel(
+                    candidate,
+                    generation_config={
+                        "temperature": 0.2,
+                        "max_output_tokens": 400,
+                    },
+                )
+                _cached_copilot_model = m
+                return _cached_copilot_model
+            except Exception:
+                continue
+
+        return None
+    except Exception as e:
+        logger.error(f"Error initializing Copilot model: {e}")
         return None
 
 

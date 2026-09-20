@@ -40,40 +40,40 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
   // Strength Badge Palette
   const strengthStyles = {
     Strong: {
-      bg: "bg-[#789A8B]/15",
-      text: "text-[#98BAAB]",
-      border: "border-[#789A8B]/35",
-      bar: "bg-[#789A8B]",
+      bg: "bg-[#2EB88A]/15",
+      text: "text-[#2EB88A]",
+      border: "border-[#2EB88A]/35",
+      bar: "bg-[#2EB88A]",
     },
     Moderate: {
-      bg: "bg-[#D99B26]/15",
-      text: "text-[#E6B04C]",
-      border: "border-[#D99B26]/35",
-      bar: "bg-[#D99B26]",
+      bg: "bg-[#EAAA08]/15",
+      text: "text-[#EAAA08]",
+      border: "border-[#EAAA08]/35",
+      bar: "bg-[#EAAA08]",
     },
     Weak: {
-      bg: "bg-[#847E9C]/15",
-      text: "text-[#A39EB8]",
-      border: "border-[#847E9C]/35",
-      bar: "bg-[#847E9C]",
+      bg: "bg-[#717BBC]/15",
+      text: "text-[#717BBC]",
+      border: "border-[#717BBC]/35",
+      bar: "bg-[#717BBC]",
     },
   }[evidence_strength_label] || {
     bg: "bg-white/10",
-    text: "text-white",
+    text: "text-[#F0F6FC]",
     border: "border-white/20",
     bar: "bg-white",
   };
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/[0.08] bg-[#0D1117]/80 rounded-lg p-4 space-y-4">
+    <div className="mt-4 pt-4 border-t border-white/[0.08] bg-[#0B0F14]/90 rounded-lg p-4 space-y-4">
       {/* 1. Header & Evidence Strength */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded bg-[#B08D57]/15 text-[#C9A873]">
+          <div className="p-1 rounded bg-[#D4A359]/15 text-[#D4A359]">
             <SlidersHorizontal className="h-4 w-4" />
           </div>
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-white">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#F0F6FC]">
               Why was this flagged?
             </span>
             <span className="ml-2 text-[11px] text-[#8B949E]">
@@ -98,20 +98,20 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
       </div>
 
       {/* 2. Four Multi-Signal Evidence Bars (Section 4.3) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#161B22]/60 p-3 rounded-lg border border-white/[0.04]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#141A22] p-3 rounded-lg border border-white/[0.06]">
         {/* Flow Deviation */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
-              <Activity className="h-3 w-3 text-[#6B8CAE]" /> Flow Deviation
+              <Activity className="h-3 w-3 text-[#4D88C7]" /> Flow Deviation
             </span>
-            <span className="font-mono font-medium text-white">
+            <span className="font-mono font-medium text-[#F0F6FC]">
               {normalized_flow_deviation}%
             </span>
           </div>
           <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#6B8CAE] rounded-full transition-all duration-500"
+              className="h-full bg-[#4D88C7] rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, normalized_flow_deviation))}%` }}
             />
           </div>
@@ -124,15 +124,15 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
-              <Clock className="h-3 w-3 text-[#B08D57]" /> Duration Span
+              <Clock className="h-3 w-3 text-[#D4A359]" /> Duration Span
             </span>
-            <span className="font-mono font-medium text-white">
+            <span className="font-mono font-medium text-[#F0F6FC]">
               {normalized_duration}%
             </span>
           </div>
           <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#B08D57] rounded-full transition-all duration-500"
+              className="h-full bg-[#D4A359] rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, normalized_duration))}%` }}
             />
           </div>
@@ -145,15 +145,15 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
-              <UserX className="h-3 w-3 text-[#D99B26]" /> Occupancy Mismatch
+              <UserX className="h-3 w-3 text-[#F38744]" /> Occupancy Mismatch
             </span>
-            <span className="font-mono font-medium text-white">
+            <span className="font-mono font-medium text-[#F0F6FC]">
               {normalized_occupancy_mismatch}%
             </span>
           </div>
           <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#D99B26] rounded-full transition-all duration-500"
+              className="h-full bg-[#F38744] rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, normalized_occupancy_mismatch))}%` }}
             />
           </div>
@@ -166,15 +166,15 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
-              <Gauge className="h-3 w-3 text-[#789A8B]" /> Sensor Diagnostic
+              <Gauge className="h-3 w-3 text-[#2EB88A]" /> Sensor Diagnostic
             </span>
-            <span className="font-mono font-medium text-white">
+            <span className="font-mono font-medium text-[#F0F6FC]">
               {normalized_sensor_health}%
             </span>
           </div>
           <div className="h-1.5 w-full bg-white/[0.06] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#789A8B] rounded-full transition-all duration-500"
+              className="h-full bg-[#2EB88A] rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, Math.max(0, normalized_sensor_health))}%` }}
             />
           </div>
@@ -186,20 +186,20 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
 
       {/* 3. Physical Telemetry Facts Grid (Section 4.2) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-        <div className="bg-[#161B22]/40 p-2 rounded border border-white/[0.04]">
+        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
           <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
             Expected Baseline
           </span>
-          <span className="font-mono font-semibold text-white">
+          <span className="font-mono font-semibold text-[#F0F6FC]">
             {expected_flow_lpm.toFixed(2)} L/min
           </span>
         </div>
 
-        <div className="bg-[#161B22]/40 p-2 rounded border border-white/[0.04]">
+        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
           <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
             Observed Flow
           </span>
-          <span className="font-mono font-semibold text-[#E4572E]">
+          <span className="font-mono font-semibold text-[#F0F6FC]">
             {observed_flow_lpm.toFixed(2)} L/min
             {peak_flow_lpm > observed_flow_lpm && (
               <span className="text-[10px] text-[#8B949E] font-normal ml-1">
@@ -209,32 +209,32 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
           </span>
         </div>
 
-        <div className="bg-[#161B22]/40 p-2 rounded border border-white/[0.04]">
+        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
           <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
             Active Occupancy
           </span>
-          <span className="font-mono font-semibold text-white">
+          <span className="font-mono font-semibold text-[#F0F6FC]">
             {occupancy_rate === 0.0 ? "0% (Unoccupied)" : `${Math.round(occupancy_rate * 100)}%`}
           </span>
         </div>
 
-        <div className="bg-[#161B22]/40 p-2 rounded border border-white/[0.04]">
+        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
           <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
             Total Water Lost
           </span>
-          <span className="font-mono font-semibold text-[#6B8CAE]">
+          <span className="font-mono font-semibold text-[#F0F6FC]">
             {estimated_water_loss_liters.toFixed(1)} Litres
           </span>
         </div>
       </div>
 
       {/* 4. Formula & Grounding Rationale Note */}
-      <div className="flex items-start gap-2 pt-1 text-[11px] text-[#8B949E]/80 bg-white/[0.02] p-2.5 rounded border border-white/[0.03]">
-        <HelpCircle className="h-3.5 w-3.5 text-[#B08D57] shrink-0 mt-0.5" />
+      <div className="flex items-start gap-2 pt-1 text-[11px] text-[#8B949E]/80 bg-[#141A22]/50 p-2.5 rounded border border-white/[0.04]">
+        <HelpCircle className="h-3.5 w-3.5 text-[#D4A359] shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <p>
-            <strong className="text-white">Evidence Weighting Formula:</strong>{" "}
-            <span className="font-mono text-[10px] text-[#C9A873]">
+            <strong className="text-[#F0F6FC]">Evidence Weighting Formula:</strong>{" "}
+            <span className="font-mono text-[10px] text-[#D4A359]">
               30% Flow Deviation + 25% Duration + 25% Occupancy Mismatch + 20% Sensor Health
             </span>
           </p>

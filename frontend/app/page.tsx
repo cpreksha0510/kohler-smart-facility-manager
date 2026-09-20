@@ -161,7 +161,7 @@ export default function DashboardPage() {
   const openTicketsCount = activeTickets.filter((t) => t.status !== "resolved").length;
 
   return (
-    <div className="min-h-screen bg-[#0D1117] text-[#F0F6FC] flex flex-col font-sans selection:bg-[#6B8CAE]/30">
+    <div className="min-h-screen bg-[#0B0F14] text-[#F0F6FC] flex flex-col font-sans selection:bg-[#D4A359]/30">
       {/* 1. Executive Brand Header */}
       <Header
         activeTab={activeTab}
@@ -234,10 +234,10 @@ export default function DashboardPage() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.08] bg-[#161B22] py-4 text-center text-xs text-[#8B949E]">
+      <footer className="border-t border-white/[0.08] bg-[#141A22] py-4 text-center text-xs text-[#8B949E]">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>KOHLER Facility Monitor · Airport Restroom Operations Platform</span>
-          <span className="font-mono text-[11px] text-[#C5A059]">Branch: ui-experiment</span>
+          <span className="font-mono text-[11px] text-[#D4A359]">Branch: ui-experiment</span>
         </div>
       </footer>
     </div>

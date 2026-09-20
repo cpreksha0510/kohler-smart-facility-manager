@@ -141,40 +141,49 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
     switch (label.toLowerCase()) {
       case "critical":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#E4572E]/15 text-[#E4572E] border border-[#E4572E]/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#F04438]/15 text-[#F04438] border border-[#F04438]/35">
             <AlertTriangle className="h-3 w-3" /> Critical ({score.toFixed(0)})
           </span>
         );
       case "high":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#F0A202]/15 text-[#F0A202] border border-[#F0A202]/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#F38744]/15 text-[#F38744] border border-[#F38744]/35">
             <AlertCircle className="h-3 w-3" /> High ({score.toFixed(0)})
           </span>
         );
       case "medium":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#D9B44A]/15 text-[#D9B44A] border border-[#D9B44A]/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#EAAA08]/15 text-[#EAAA08] border border-[#EAAA08]/35">
             Medium ({score.toFixed(0)})
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-white/10 text-[#8B949E] border border-white/10">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-[#717BBC]/15 text-[#717BBC] border border-[#717BBC]/35">
             Low ({score.toFixed(0)})
           </span>
         );
     }
   };
 
+  const getAnomalyTypeBadge = (type: string) => {
+    const formatted = type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-[#1A2332] text-[#7C95B6] border border-[#2D3B4E]">
+        {formatted}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* ── Top Filtering & Controls Toolbar ─────────────────────────────────── */}
-      <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-4.5 shadow-sm">
+      <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-4.5 shadow-sm">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Filter Dropdowns */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-1.5 text-xs text-[#8B949E]">
-              <Filter className="h-3.5 w-3.5 text-[#C5A059]" />
+              <Filter className="h-3.5 w-3.5 text-[#D4A359]" />
               <span className="font-semibold uppercase tracking-wider text-[11px]">Filters:</span>
             </div>
 
@@ -182,7 +191,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="bg-[#0D1117] border border-white/15 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#C5A059]"
+              className="bg-[#0B0F14] border border-white/15 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#D4A359]"
             >
               <option value="all">All Zones</option>
               <option value="T2_Restroom_A">T2_Restroom_A (Departure)</option>
@@ -239,7 +248,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
         </div>
 
         {activeTickets.length === 0 ? (
-          <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-10 text-center text-xs text-[#8B949E]">
+          <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-10 text-center text-xs text-[#8B949E]">
             No active tickets matching the selected filters. All anomalies resolved or suppressed.
           </div>
         ) : (
@@ -247,17 +256,17 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
             {activeTickets.map((t) => {
               const stripeColor =
                 t.severity_label === "Critical"
-                  ? "#E4572E"
+                  ? "#F04438"
                   : t.severity_label === "High"
-                  ? "#F0A202"
+                  ? "#F38744"
                   : t.severity_label === "Medium"
-                  ? "#D9B44A"
-                  : "#6E7681";
+                  ? "#EAAA08"
+                  : "#717BBC";
 
               return (
                 <div
                   key={t.ticket_id}
-                  className="bg-[#161B22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-5 shadow-sm transition-all relative overflow-hidden"
+                  className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-5 shadow-sm transition-all relative overflow-hidden"
                 >
                   {/* Left severity indicator bar */}
                   <div
@@ -265,26 +274,24 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                     style={{ backgroundColor: stripeColor }}
                   />
 
-                  {/* Header Row: Ticket ID, Severity, Zone, Fixture, Status Button Group */}
+                  {/* Header Row: Ticket ID, Severity, Anomaly Type, Zone, Fixture, Status Button Group */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
                     <div className="flex flex-wrap items-center gap-2.5">
                       {getSeverityBadge(t.severity_label, t.severity_score)}
                       <span className="font-mono text-xs font-bold text-white">{t.ticket_id}</span>
-                      <span className="px-2 py-0.5 rounded text-[11px] bg-white/[0.05] border border-white/10 text-[#C9D1D9]">
-                        {t.anomaly_type.replace("_", " ")}
-                      </span>
+                      {getAnomalyTypeBadge(t.anomaly_type)}
                       <span className="text-xs text-[#8B949E]">
-                        in <strong className="text-white">{t.zone_id.replace("T2_", "").replace("_", " ")}</strong> · <strong className="text-[#C5A059] font-mono">{t.fixture_id}</strong>
+                        in <strong className="text-white">{t.zone_id.replace("T2_", "").replace("_", " ")}</strong> · <strong className="text-[#C9D1D9] font-mono">{t.fixture_id}</strong>
                       </span>
                     </div>
 
                     {/* Status Button Group: Open | Dispatched | Resolved */}
-                    <div className="flex items-center bg-[#0D1117] p-1 rounded-lg border border-white/[0.08] self-start sm:self-auto shrink-0">
+                    <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08] self-start sm:self-auto shrink-0">
                       <button
                         onClick={() => handleStatusClick(t, "open")}
                         className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                           t.status === "open"
-                            ? "bg-[#21262D] text-[#F0A202] font-bold shadow-sm"
+                            ? "bg-[#1B222C] text-[#F38744] font-bold shadow-sm border border-[#F38744]/35"
                             : "text-[#8B949E] hover:text-white"
                         }`}
                       >
@@ -294,7 +301,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                         onClick={() => handleStatusClick(t, "dispatched")}
                         className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-all ${
                           t.status === "dispatched"
-                            ? "bg-sky-500/20 text-sky-400 font-bold border border-sky-500/30 shadow-sm"
+                            ? "bg-[#4D88C7]/20 text-[#4D88C7] font-bold border border-[#4D88C7]/35 shadow-sm"
                             : "text-[#8B949E] hover:text-white"
                         }`}
                       >
@@ -303,7 +310,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       </button>
                       <button
                         onClick={() => handleStatusClick(t, "resolved")}
-                        className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium text-[#8B949E] hover:text-emerald-400 transition-all"
+                        className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium text-[#8B949E] hover:text-[#2EB88A] transition-all"
                       >
                         <Check className="h-3 w-3" />
                         Mark Resolved
@@ -322,13 +329,13 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       <span className="font-semibold text-white capitalize flex items-center gap-1.5">
                         {t.status === "dispatched" ? (
                           <>
-                            <span className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-ping" />
-                            <span className="text-sky-400">Technician Dispatched</span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#4D88C7] animate-ping" />
+                            <span className="text-[#4D88C7]">Technician Dispatched</span>
                           </>
                         ) : (
                           <>
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#F0A202]" />
-                            <span className="text-[#F0A202]">Open Incident</span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#F38744]" />
+                            <span className="text-[#F38744]">Open Incident</span>
                           </>
                         )}
                       </span>
@@ -339,16 +346,16 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                     </div>
                     <div>
                       <span className="text-[#8B949E] block text-[10px] uppercase">Municipal Cost Impact</span>
-                      <span className="font-mono text-[#C5A059] font-bold">₹{t.estimated_cost_impact?.toFixed(2)}</span>
+                      <span className="font-mono text-white font-bold">₹{t.estimated_cost_impact?.toFixed(2)}</span>
                     </div>
                   </div>
 
-                  {/* Feature 2: Unresolved Runaway Waste Projection (Section 2.2) */}
+                  {/* Feature 2: Unresolved Runaway Waste Projection (Consistent Horizon Cards) */}
                   {t.sustainability?.projections && (
                     <div className="mt-2.5 p-2.5 bg-[#0D1117] rounded-lg border border-white/[0.04] text-xs">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] text-[#8B949E] uppercase tracking-wider font-semibold flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3 text-[#D99B26]" /> If Left Unresolved (Runaway Waste Horizon)
+                        <span className="text-[10px] text-[#8B949E] uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                          <Clock className="h-3 w-3 text-[#8B949E]" /> If Left Unresolved (Runaway Waste Horizon)
                         </span>
                         <span className="text-[10px] text-[#8B949E] font-mono">
                           Flow: {t.evidence?.observed_flow_lpm.toFixed(2)} L/m
@@ -373,12 +380,12 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                             ₹{t.sustainability.projections["6h"].projected_cost_inr.toFixed(2)}
                           </span>
                         </div>
-                        <div className="bg-[#D99B26]/5 p-1.5 rounded border border-[#D99B26]/20">
-                          <span className="text-[10px] text-[#D99B26] font-medium block">+24 Hours</span>
-                          <span className="font-mono text-[#D99B26] font-bold">
-                            {t.sustainability.projections["24h"].projected_loss_liters} L
+                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
+                          <span className="text-[10px] text-[#8B949E] block">+24 Hours</span>
+                          <span className="font-mono text-white font-semibold">
+                            {t.sustainability.projections["24h"].projected_loss_liters.toLocaleString()} L
                           </span>
-                          <span className="text-[9px] text-[#D99B26]/80 block">
+                          <span className="text-[9px] text-[#8B949E] block">
                             ₹{t.sustainability.projections["24h"].projected_cost_inr.toFixed(2)}
                           </span>
                         </div>
@@ -397,9 +404,9 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
 
                   {/* AI Analysis Explanation Sub-card */}
                   {t.explanation && (
-                    <div className="mt-2 pt-3 border-t border-white/[0.06] bg-[#12161A]/60 rounded-lg p-3 border border-white/[0.04]">
+                    <div className="mt-2 pt-3 border-t border-white/[0.06] bg-[#0B0F14]/70 rounded-lg p-3 border border-white/[0.04]">
                       <div className="flex items-start gap-2.5">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#6B8CAE]/15 text-[#6B8CAE] border border-[#6B8CAE]/30 shrink-0 mt-0.5">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#4D88C7]/15 text-[#4D88C7] border border-[#4D88C7]/30 shrink-0 mt-0.5">
                           <Sparkles className="h-2.5 w-2.5" /> AI Analysis
                         </span>
                         <p className="text-xs text-[#C9D1D9] leading-relaxed whitespace-normal break-words">
@@ -413,7 +420,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                   <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex flex-wrap items-center justify-between gap-2">
                     <button
                       onClick={() => toggleEvidence(t.ticket_id)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-[#C9A873] bg-[#B08D57]/10 hover:bg-[#B08D57]/20 border border-[#B08D57]/30 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-[#D4A359] bg-[#D4A359]/10 hover:bg-[#D4A359]/20 border border-[#D4A359]/30 transition-all cursor-pointer"
                     >
                       <SlidersHorizontal className="h-3.5 w-3.5" />
                       <span>{expandedEvidence[t.ticket_id] ? "Hide Evidence Breakdown" : "Why was this flagged?"}</span>
@@ -430,10 +437,10 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                         <strong
                           className={
                             t.evidence.evidence_strength_label === "Strong"
-                              ? "text-[#789A8B]"
+                              ? "text-[#2EB88A]"
                               : t.evidence.evidence_strength_label === "Moderate"
-                              ? "text-[#D99B26]"
-                              : "text-[#847E9C]"
+                              ? "text-[#EAAA08]"
+                              : "text-[#717BBC]"
                           }
                         >
                           {t.evidence.evidence_strength_label}
@@ -458,11 +465,11 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
         <div className="space-y-4 pt-4 border-t border-white/[0.08]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <CheckCircle2 className="h-4 w-4 text-[#2EB88A]" />
               <h3 className="text-sm font-bold text-white tracking-wide uppercase">
                 Resolved Tickets Audit Log
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#2EB88A]/15 text-[#2EB88A] border border-[#2EB88A]/30">
                 {resolvedTickets.length} resolved
               </span>
             </div>
@@ -470,7 +477,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
           </div>
 
           {resolvedTickets.length === 0 ? (
-            <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-8 text-center text-xs text-[#8B949E]">
+            <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-8 text-center text-xs text-[#8B949E]">
               No resolved tickets recorded yet.
             </div>
           ) : (
@@ -478,11 +485,11 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
               {resolvedTickets.map((t) => (
                 <div
                   key={t.ticket_id}
-                  className="bg-[#161B22]/60 border border-white/[0.06] rounded-xl p-4.5 opacity-90 transition-all"
+                  className="bg-[#141A22]/70 border border-white/[0.06] rounded-xl p-4.5 opacity-90 transition-all"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-white/[0.04]">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-[#2EB88A]/15 text-[#2EB88A] border border-[#2EB88A]/30">
                         <CheckCircle2 className="h-3 w-3" /> Resolved
                       </span>
                       <span className="font-mono text-xs font-semibold text-white">{t.ticket_id}</span>
@@ -496,7 +503,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       {/* Reopen Action */}
                       <button
                         onClick={() => handleStatusClick(t, "open")}
-                        className="text-xs px-2.5 py-1 rounded bg-[#0D1117] hover:bg-white/10 text-[#8B949E] hover:text-white border border-white/10 transition-all"
+                        className="text-xs px-2.5 py-1 rounded bg-[#0B0F14] hover:bg-white/10 text-[#8B949E] hover:text-white border border-white/10 transition-all"
                       >
                         Reopen
                       </button>
@@ -504,10 +511,10 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                   </div>
 
                   {/* Resolution Note Callout */}
-                  <div className="mt-3 p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-lg text-xs flex items-start gap-2.5">
-                    <FileText className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="mt-3 p-3 bg-[#2EB88A]/10 border border-[#2EB88A]/25 rounded-lg text-xs flex items-start gap-2.5">
+                    <FileText className="h-4 w-4 text-[#2EB88A] shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-[11px] font-semibold text-emerald-400 block uppercase tracking-wider">
+                      <span className="text-[11px] font-semibold text-[#2EB88A] block uppercase tracking-wider">
                         Resolution Audit Note:
                       </span>
                       <p className="text-[#C9D1D9] mt-0.5">
@@ -518,10 +525,13 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
 
                   {/* Feature 2: Intervention Impact (Section 2.7) */}
                   {t.sustainability?.intervention_impact && (
-                    <div className="mt-2.5 p-3 bg-gradient-to-r from-emerald-950/40 via-[#789A8B]/10 to-transparent border border-[#789A8B]/30 rounded-lg text-xs space-y-2">
+                    <div className="mt-2.5 p-3 bg-[#141A22] border border-white/[0.08] rounded-lg text-xs space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#98BAAB] text-[11px]">
-                          <TrendingDown className="h-3.5 w-3.5" /> Intervention Impact
+                        <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#F0F6FC] text-[11px]">
+                          <span className="p-1 rounded bg-[#2EB88A]/15 text-[#2EB88A]">
+                            <TrendingDown className="h-3 w-3" />
+                          </span>
+                          Intervention Impact
                         </span>
                         <span className="text-[10px] text-[#8B949E] font-mono">
                           Counterfactual 24h Baseline Model
@@ -529,21 +539,21 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 py-1">
-                        <div className="bg-[#0D1117]/70 p-2 rounded border border-white/[0.04]">
+                        <div className="bg-[#0B0F14] p-2 rounded border border-white/[0.04]">
                           <span className="text-[10px] text-[#8B949E] block uppercase">Actual Water Lost</span>
-                          <span className="font-mono font-bold text-white text-sm">
+                          <span className="font-mono font-bold text-[#F0F6FC] text-sm">
                             {t.sustainability.intervention_impact.actual_loss_liters.toFixed(1)} L
                           </span>
                         </div>
-                        <div className="bg-[#0D1117]/70 p-2 rounded border border-[#789A8B]/30">
-                          <span className="text-[10px] text-[#98BAAB] block uppercase font-medium">Estimated Water Saved</span>
-                          <span className="font-mono font-bold text-[#98BAAB] text-sm">
+                        <div className="bg-[#0B0F14] p-2 rounded border border-white/[0.04]">
+                          <span className="text-[10px] text-[#8B949E] block uppercase font-medium">Estimated Water Saved</span>
+                          <span className="font-mono font-bold text-[#F0F6FC] text-sm">
                             +{t.sustainability.intervention_impact.estimated_water_saved_liters.toFixed(1)} L
                           </span>
                         </div>
-                        <div className="bg-[#0D1117]/70 p-2 rounded border border-[#789A8B]/30">
-                          <span className="text-[10px] text-[#98BAAB] block uppercase font-medium">Estimated Avoided Cost</span>
-                          <span className="font-mono font-bold text-[#98BAAB] text-sm">
+                        <div className="bg-[#0B0F14] p-2 rounded border border-white/[0.04]">
+                          <span className="text-[10px] text-[#8B949E] block uppercase font-medium">Estimated Avoided Cost</span>
+                          <span className="font-mono font-bold text-[#F0F6FC] text-sm">
                             ₹{t.sustainability.intervention_impact.avoided_cost_inr.toFixed(2)}
                           </span>
                         </div>
@@ -568,7 +578,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                   <div className="mt-3 pt-2.5 border-t border-white/[0.04] flex flex-wrap items-center justify-between gap-2">
                     <button
                       onClick={() => toggleEvidence(t.ticket_id)}
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium text-[#C9A873] bg-[#B08D57]/10 hover:bg-[#B08D57]/20 border border-[#B08D57]/30 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium text-[#D4A359] bg-[#D4A359]/10 hover:bg-[#D4A359]/20 border border-[#D4A359]/30 transition-all cursor-pointer"
                     >
                       <SlidersHorizontal className="h-3 w-3" />
                       <span>{expandedEvidence[t.ticket_id] ? "Hide Evidence" : "Why was this flagged?"}</span>
@@ -585,10 +595,10 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                         <strong
                           className={
                             t.evidence.evidence_strength_label === "Strong"
-                              ? "text-[#789A8B]"
+                              ? "text-[#2EB88A]"
                               : t.evidence.evidence_strength_label === "Moderate"
-                              ? "text-[#D99B26]"
-                              : "text-[#847E9C]"
+                              ? "text-[#EAAA08]"
+                              : "text-[#717BBC]"
                           }
                         >
                           {t.evidence.evidence_strength_label}
@@ -638,7 +648,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                 <strong className="text-white">{resolvingTicket.zone_id.replace("T2_", "").replace("_", " ")}</strong>
               </div>
               <div>
-                Anomaly: <span className="text-[#C5A059]">{resolvingTicket.anomaly_type.replace("_", " ")}</span> · Severity:{" "}
+                Anomaly: <span className="text-[#8FA3BB] font-medium">{resolvingTicket.anomaly_type.replace(/_/g, " ")}</span> · Severity:{" "}
                 <strong className="text-white">{resolvingTicket.severity_label}</strong>
               </div>
             </div>

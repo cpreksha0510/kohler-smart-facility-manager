@@ -35,7 +35,7 @@ from src.sustainability import (
     calculate_incident_projection,
     calculate_intervention_impact,
 )
-from src.llm import get_gemini_model
+from src.llm import get_gemini_model, get_copilot_model
 
 app = FastAPI(
     title="KOHLER Smart Facility Manager API",
@@ -339,70 +339,92 @@ def get_digests():
 def chat_with_copilot(req: ChatRequest):
     """
     Conversational assistant for facility managers powered by Google Gemini.
-    Injects current SQLite metrics and ticket telemetry as live context.
+    Strictly grounded in SQLite database metrics, ticket telemetry, and sustainability intelligence.
     """
-    tickets_df = get_tickets_df(str(DB_PATH))
-    tickets_summary = ""
-    if not tickets_df.empty:
-        open_t = tickets_df[tickets_df["status"] != "resolved"]
-        tickets_summary = (
-            f"Total tickets: {len(tickets_df)}, Open tickets: {len(open_t)}. "
-            f"Worst anomalies:\n"
-        )
-        for _, r in tickets_df.head(5).iterrows():
-            tickets_summary += (
-                f"- {r['ticket_id']}: {r['fixture_id']} ({r['zone_id']}), {r['anomaly_type']}, "
-                f"Severity: {r['severity_label']} ({r['severity_score']}), "
-                f"Water lost: {r['estimated_water_loss_liters']} L, Status: {r['status']}\n"
-                f"  Explanation: {r['explanation']}\n"
-            )
+    tickets = get_tickets()
+    sust = calculate_facility_sustainability_summary(tickets)
 
-    model = get_gemini_model()
+    open_tickets = [t for t in tickets if str(t.get("status", "")).lower() != "resolved"]
+    open_tickets.sort(key=lambda x: float(x.get("estimated_water_loss_liters") or 0.0), reverse=True)
+
+    open_summary = []
+    for t in open_tickets[:8]:
+        ev = t.get("evidence") or {}
+        flow_obs = float(ev.get("observed_flow_lpm") or (float(t.get("estimated_water_loss_liters") or 0.0) / 30.0 if float(t.get("estimated_water_loss_liters") or 0.0) > 0 else 0.0))
+        flow_exp = float(ev.get("expected_flow_lpm") or 0.0)
+        open_summary.append(
+            f"- Fixture {t.get('fixture_id')} in {t.get('zone_id')}: {t.get('anomaly_type')} "
+            f"[{t.get('severity_label')} Severity, score {t.get('severity_score')}/100], "
+            f"Water lost: {float(t.get('estimated_water_loss_liters') or 0.0):.1f} L (cost: ₹{float(t.get('estimated_cost_impact') or 0.0):.2f}), "
+            f"Flow: {flow_obs:.2f} LPM (baseline {flow_exp:.2f} LPM), Status: {t.get('status')}"
+        )
+
+    hw_fix = sust.get("highest_waste_fixture") or {}
+    hw_zone = sust.get("highest_waste_zone") or {}
+
+    grounding_context = f"""FACILITY DATABASE & TELEMETRY GROUNDING CONTEXT:
+Sustainability & Conservation Overview:
+- Total Water Wasted Across Facility: {sust.get('water_waste_liters', 0.0):.1f} Litres (utility cost: ₹{sust.get('cost_impact_inr', 0.0):.2f})
+- Total Water Saved via Interventions: {sust.get('water_saved_liters', 0.0):.1f} Litres (avoided cost: ₹{sust.get('avoided_cost_inr', 0.0):.2f})
+- Highest Waste Fixture: {hw_fix.get('fixture_id', 'None')} in {hw_fix.get('zone_id', 'None')} ({hw_fix.get('water_waste_liters', 0.0):.1f} Litres lost, ₹{hw_fix.get('cost_impact_inr', 0.0):.2f})
+- Highest Waste Zone: {hw_zone.get('zone_id', 'None')} ({hw_zone.get('water_waste_liters', 0.0):.1f} Litres lost, ₹{hw_zone.get('cost_impact_inr', 0.0):.2f})
+- Projected 24h Unresolved Water Loss: {sust.get('projected_unresolved_loss_24h_liters', 0.0):.1f} Litres
+
+Active Open Tickets (ranked by water loss impact):
+{chr(10).join(open_summary) if open_summary else "No active open tickets."}
+"""
+
+    model = get_copilot_model()
     if model:
         try:
-            prompt = f"""You are the KOHLER Smart Facility Assistant, an intelligent operational copilot for airport restroom managers at Terminal 2.
-Current telemetry context from SQLite database:
-{tickets_summary}
+            prompt = f"""You are the KOHLER Smart Facility Assistant, an intelligent operational copilot for airport restroom facility managers at Terminal 2.
+
+{grounding_context}
 
 User Query: {req.message}
 
-Provide a concise, professional, actionable response in 2-4 sentences. Cite specific fixture IDs, zones, water loss (litres), and cost estimates when relevant. Use bold formatting for fixture names and severity levels."""
-            
+GROUNDING RULES (STRICT):
+1. Do not invent telemetry values, fixture names, or numbers. Base all answers strictly on the supplied grounding context.
+2. If information is unavailable, say so clearly.
+3. Provide a concise, professional, actionable response in 2-4 sentences.
+4. Cite specific fixture IDs, zones, water loss (litres), and cost estimates when relevant. Use bold formatting for fixture names (e.g., **Sink_01**) and severity levels (e.g., **High**)."""
+
             response = model.generate_content(prompt)
             raw_text = response.text.strip()
-            try:
-                parsed = json.loads(raw_text)
-                reply = parsed.get("response") or parsed.get("reply") or parsed.get("answer") or raw_text
-            except Exception:
-                reply = raw_text
-            return {"reply": reply}
+            return {"reply": raw_text}
         except Exception as e:
-            pass
+            print(f"[ERROR] Copilot model generation error: {e}")
 
-    # Intelligent deterministic fallback
+    # Grounded deterministic fallback in case API is offline or quota reached
+    worst_fix_name = hw_fix.get("fixture_id", "Sink_01")
+    worst_zone_name = hw_fix.get("zone_id", "T2_Restroom_A")
+    worst_liters = hw_fix.get("water_waste_liters", 0.0)
+    worst_cost = hw_fix.get("cost_impact_inr", 0.0)
+    total_waste = sust.get("water_waste_liters", 0.0)
+    total_cost = sust.get("cost_impact_inr", 0.0)
+
     msg_lower = req.message.lower()
     if "worst" in msg_lower or "highest" in msg_lower or "leak" in msg_lower:
         return {
             "reply": (
-                "The most critical issue is **Sink_01** in **T2_Restroom_A**, which sustained an overnight leak "
-                "averaging 3.50 LPM across 39 minutes, resulting in **136.4 Litres** of water loss. "
-                "It is flagged as **High Severity** and requires immediate valve seal inspection."
+                f"The fixture with the worst water waste right now is **{worst_fix_name}** in **{worst_zone_name}**, "
+                f"which has accumulated **{worst_liters:.1f} Litres** of water loss (approx ₹{worst_cost:.2f} utility impact). "
+                f"It is flagged with active **High** severity anomalies and requires immediate valve inspection."
             )
         }
-    elif "cost" in msg_lower or "water" in msg_lower:
-        total_loss = float(tickets_df["estimated_water_loss_liters"].sum()) if not tickets_df.empty else 0.0
-        total_cost = float(tickets_df["estimated_cost_impact"].sum()) if not tickets_df.empty else 0.0
+    elif "cost" in msg_lower or "sustainability" in msg_lower or "saved" in msg_lower:
         return {
             "reply": (
-                f"Across all four zones, cumulative water loss is currently **{total_loss:.1f} Litres**, "
-                f"amounting to approximately **₹{total_cost:.2f}** in municipal utility impact. "
-                f"The majority stems from sustained valve leakage in Departure Restroom A."
+                f"Across Terminal 2, cumulative water waste is **{total_waste:.1f} Litres** (approx ₹{total_cost:.2f} direct cost). "
+                f"Maintenance interventions have saved an estimated **{sust.get('water_saved_liters', 0.0):.1f} Litres** (₹{sust.get('avoided_cost_inr', 0.0):.2f} avoided). "
+                f"The primary loss hotspot remains **{worst_zone_name}**."
             )
         }
     else:
         return {
             "reply": (
-                f"Currently monitoring **4 zones** across Terminal 2. There are **{len(tickets_df)} flagged tickets** "
-                f"requiring maintenance attention. The primary concern is overnight valve leakage in **T2_Restroom_A**."
+                f"Currently monitoring **4 zones** across Terminal 2 with **{len(open_tickets)} open tickets** needing attention. "
+                f"Priority focus should be directed to **{worst_fix_name}** in **{worst_zone_name}**, which accounts for "
+                f"the highest single-fixture water loss at **{worst_liters:.1f} Litres**."
             )
         }

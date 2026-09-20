@@ -22,10 +22,10 @@ interface FlowRateChartProps {
 }
 
 const ZONE_COLORS: Record<string, string> = {
-  T2_Restroom_A: "#6B8CAE",
-  T2_Restroom_B: "#789A8B",
-  T2_Family_Room: "#B08D57",
-  T2_Staff_WC: "#847E9C",
+  T2_Restroom_A: "#5B8DEF",
+  T2_Restroom_B: "#3EA882",
+  T2_Family_Room: "#E09F3E",
+  T2_Staff_WC: "#9D7FE3",
 };
 
 const ZONE_LABELS: Record<string, string> = {
@@ -122,11 +122,11 @@ export function FlowRateChart({
   const getFixtureColor = (fid: string) => {
     // Match fixture to its zone color
     const sample = readings.find((r) => r.fixture_id === fid);
-    return sample ? ZONE_COLORS[sample.zone_id] || "#6B8CAE" : "#6B8CAE";
+    return sample ? ZONE_COLORS[sample.zone_id] || "#5B8DEF" : "#5B8DEF";
   };
 
   return (
-    <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+    <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
         <div>
@@ -142,7 +142,7 @@ export function FlowRateChart({
                 : "Per-Fixture Breakdown"}
             </span>
             {isReplay && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#C5A059]/15 text-[#C5A059] border border-[#C5A059]/30">
+              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#D4A359]/15 text-[#D4A359] border border-[#D4A359]/30">
                 Replay Scrubber
               </span>
             )}
@@ -156,12 +156,12 @@ export function FlowRateChart({
 
         {/* View Mode Radio & Zone Chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-[#0D1117] p-1 rounded-lg border border-white/[0.08]">
+          <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08]">
             <button
               onClick={() => setChartMode("zone_total")}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
                 chartMode === "zone_total"
-                  ? "bg-[#21262D] text-white"
+                  ? "bg-[#1B222C] text-white font-semibold border border-white/10 shadow-sm"
                   : "text-[#8B949E] hover:text-white"
               }`}
             >
@@ -171,7 +171,7 @@ export function FlowRateChart({
               onClick={() => setChartMode("per_fixture")}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
                 chartMode === "per_fixture"
-                  ? "bg-[#21262D] text-white"
+                  ? "bg-[#1B222C] text-white font-semibold border border-white/10 shadow-sm"
                   : "text-[#8B949E] hover:text-white"
               }`}
             >

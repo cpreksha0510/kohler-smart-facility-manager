@@ -59,25 +59,25 @@ export function TicketsTable({
     switch (label.toLowerCase()) {
       case "critical":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#E4572E]/15 text-[#E4572E] border border-[#E4572E]/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F04438]/15 text-[#F04438] border border-[#F04438]/30">
             <AlertTriangle className="h-3 w-3" /> Critical ({score.toFixed(0)})
           </span>
         );
       case "high":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F0A202]/15 text-[#F0A202] border border-[#F0A202]/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F38744]/15 text-[#F38744] border border-[#F38744]/30">
             <AlertCircle className="h-3 w-3" /> High ({score.toFixed(0)})
           </span>
         );
       case "medium":
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#D9B44A]/15 text-[#D9B44A] border border-[#D9B44A]/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#EAAA08]/15 text-[#EAAA08] border border-[#EAAA08]/30">
             Medium ({score.toFixed(0)})
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-white/10 text-[#8B949E] border border-white/10">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#717BBC]/15 text-[#717BBC] border border-[#717BBC]/30">
             Low ({score.toFixed(0)})
           </span>
         );
@@ -91,11 +91,11 @@ export function TicketsTable({
     let label = "Open";
 
     if (ticket.status === "dispatched") {
-      colorClass = "bg-sky-500/15 text-sky-400 border-sky-500/30";
+      colorClass = "bg-[#4D88C7]/15 text-[#4D88C7] border-[#4D88C7]/30";
       iconEl = <Clock className="h-3 w-3 animate-spin" />;
       label = "Dispatched";
     } else if (ticket.status === "resolved") {
-      colorClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+      colorClass = "bg-[#2EB88A]/15 text-[#2EB88A] border-[#2EB88A]/30";
       iconEl = <CheckCircle2 className="h-3 w-3" />;
       label = "Resolved";
     }
@@ -117,24 +117,24 @@ export function TicketsTable({
 
         {/* Status Dropdown Menu */}
         {statusMenuOpen === ticket.ticket_id && (
-          <div className="absolute right-0 mt-1 w-36 rounded-lg bg-[#1F242C] border border-white/15 shadow-xl z-50 py-1 text-xs">
+          <div className="absolute right-0 mt-1 w-36 rounded-lg bg-[#1B222C] border border-white/15 shadow-xl z-50 py-1 text-xs">
             <button
               onClick={() => handleSelectStatus(ticket.ticket_id, "open")}
-              className="w-full text-left px-3 py-1.5 hover:bg-white/10 text-white flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 hover:bg-white/10 text-[#F0F6FC] flex items-center gap-2"
             >
-              <span className="h-2 w-2 rounded-full bg-[#F0A202]" /> Open
+              <span className="h-2 w-2 rounded-full bg-[#F38744]" /> Open
             </button>
             <button
               onClick={() => handleSelectStatus(ticket.ticket_id, "dispatched")}
-              className="w-full text-left px-3 py-1.5 hover:bg-white/10 text-white flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 hover:bg-white/10 text-[#F0F6FC] flex items-center gap-2"
             >
-              <span className="h-2 w-2 rounded-full bg-sky-400" /> Dispatched
+              <span className="h-2 w-2 rounded-full bg-[#4D88C7]" /> Dispatched
             </button>
             <button
               onClick={() => handleSelectStatus(ticket.ticket_id, "resolved")}
-              className="w-full text-left px-3 py-1.5 hover:bg-white/10 text-white flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 hover:bg-white/10 text-[#F0F6FC] flex items-center gap-2"
             >
-              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Resolved
+              <span className="h-2 w-2 rounded-full bg-[#2EB88A]" /> Resolved
             </button>
           </div>
         )}
@@ -147,11 +147,11 @@ export function TicketsTable({
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
 
   return (
-    <div className="bg-[#161B22] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-[#141A22] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm">
       {/* Table Header & Filter Tabs */}
       <div className="px-5 py-4 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-white tracking-wide uppercase">
+          <h2 className="text-sm font-semibold text-[#F0F6FC] tracking-wide uppercase">
             Flagged Anomaly Tickets
           </h2>
           <p className="text-xs text-[#8B949E] mt-0.5">
@@ -160,11 +160,11 @@ export function TicketsTable({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center bg-[#0D1117] p-1 rounded-lg border border-white/[0.08]">
+        <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08]">
           <button
             onClick={() => setFilterTab("all")}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-              filterTab === "all" ? "bg-[#21262D] text-white" : "text-[#8B949E] hover:text-white"
+              filterTab === "all" ? "bg-[#1B222C] text-[#F0F6FC]" : "text-[#8B949E] hover:text-[#F0F6FC]"
             }`}
           >
             All ({tickets.length})
@@ -173,8 +173,8 @@ export function TicketsTable({
             onClick={() => setFilterTab("open")}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${
               filterTab === "open"
-                ? "bg-[#21262D] text-[#F0A202] font-semibold"
-                : "text-[#8B949E] hover:text-white"
+                ? "bg-[#1B222C] text-[#F38744] font-semibold"
+                : "text-[#8B949E] hover:text-[#F0F6FC]"
             }`}
           >
             Open ({openCount})
@@ -183,8 +183,8 @@ export function TicketsTable({
             onClick={() => setFilterTab("dispatched")}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${
               filterTab === "dispatched"
-                ? "bg-[#21262D] text-sky-400 font-semibold"
-                : "text-[#8B949E] hover:text-white"
+                ? "bg-[#1B222C] text-[#4D88C7] font-semibold"
+                : "text-[#8B949E] hover:text-[#F0F6FC]"
             }`}
           >
             Dispatched ({dispatchedCount})
@@ -193,8 +193,8 @@ export function TicketsTable({
             onClick={() => setFilterTab("resolved")}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${
               filterTab === "resolved"
-                ? "bg-[#21262D] text-emerald-400 font-semibold"
-                : "text-[#8B949E] hover:text-white"
+                ? "bg-[#1B222C] text-[#2EB88A] font-semibold"
+                : "text-[#8B949E] hover:text-[#F0F6FC]"
             }`}
           >
             Resolved ({resolvedCount})
@@ -206,7 +206,7 @@ export function TicketsTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-[#12161A] text-[#8B949E] border-b border-white/[0.08] uppercase text-[11px] tracking-wider">
+            <tr className="bg-[#10141A] text-[#8B949E] border-b border-white/[0.08] uppercase text-[11px] tracking-wider">
               <th className="py-3 px-4 w-2 font-medium"></th>
               <th className="py-3 px-3 font-medium">Ticket ID</th>
               <th className="py-3 px-3 font-medium">Flagged At</th>
@@ -231,12 +231,12 @@ export function TicketsTable({
                 const isResolved = t.status === "resolved";
                 const stripeColor =
                   t.severity_label === "Critical"
-                    ? "#E4572E"
+                    ? "#F04438"
                     : t.severity_label === "High"
-                    ? "#F0A202"
+                    ? "#F38744"
                     : t.severity_label === "Medium"
-                    ? "#D9B44A"
-                    : "#6E7681";
+                    ? "#EAAA08"
+                    : "#717BBC";
 
                 return (
                   <React.Fragment key={t.ticket_id}>
@@ -252,21 +252,21 @@ export function TicketsTable({
                         {t.ticket_id}
                       </td>
                       <td className="py-3.5 px-3 text-[#8B949E]">{t.timestamp_flagged_str}</td>
-                      <td className="py-3.5 px-3 font-medium text-white">
+                      <td className="py-3.5 px-3 font-medium text-[#F0F6FC]">
                         {t.zone_id.replace("T2_", "").replace("_", " ")}
                       </td>
-                      <td className="py-3.5 px-3 font-mono text-[#C5A059] font-medium">
+                      <td className="py-3.5 px-3 font-mono text-[#C9D1D9] font-medium">
                         {t.fixture_id}
                       </td>
                       <td className="py-3.5 px-3 text-[#8B949E]">
-                        <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[11px]">
-                          {t.anomaly_type.replace("_", " ")}
+                        <span className="px-2 py-0.5 rounded bg-[#1A2332] text-[#7C95B6] border border-[#2D3B4E] text-[11px] font-medium">
+                          {t.anomaly_type.replace(/_/g, " ")}
                         </span>
                       </td>
                       <td className="py-3.5 px-3">
                         {getSeverityBadge(t.severity_label, t.severity_score)}
                       </td>
-                      <td className="py-3.5 px-3 text-right font-mono text-white font-medium">
+                      <td className="py-3.5 px-3 text-right font-mono text-[#F0F6FC] font-medium">
                         {t.estimated_water_loss_liters?.toFixed(1)} L
                       </td>
                       <td className="py-3.5 px-3 text-right font-mono text-[#8B949E]">
@@ -276,13 +276,13 @@ export function TicketsTable({
                     </tr>
 
                     {/* AI Explanation & Evidence Sub-Row */}
-                    <tr className="bg-[#12161A]/50 border-b border-white/[0.06]">
+                    <tr className="bg-[#10141A]/60 border-b border-white/[0.06]">
                       <td className="w-1.5" style={{ backgroundColor: `${stripeColor}33` }} />
                       <td colSpan={9} className="py-2.5 px-3 pr-6 space-y-2">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 max-w-5xl">
                           {t.explanation ? (
                             <div className="flex items-start gap-2.5 flex-1">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#6B8CAE]/15 text-[#6B8CAE] border border-[#6B8CAE]/30 shrink-0 mt-0.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#4D88C7]/15 text-[#4D88C7] border border-[#4D88C7]/30 shrink-0 mt-0.5">
                                 <Sparkles className="h-2.5 w-2.5" /> AI Analysis
                               </span>
                               <p className="text-xs text-[#C9D1D9] leading-relaxed whitespace-normal break-words">
@@ -298,7 +298,7 @@ export function TicketsTable({
                           {/* Evidence Toggle Button */}
                           <button
                             onClick={() => toggleEvidence(t.ticket_id)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium text-[#C9A873] bg-[#B08D57]/10 hover:bg-[#B08D57]/20 border border-[#B08D57]/30 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium text-[#D4A359] bg-[#D4A359]/10 hover:bg-[#D4A359]/20 border border-[#D4A359]/30 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
                           >
                             <SlidersHorizontal className="h-3 w-3" />
                             <span>

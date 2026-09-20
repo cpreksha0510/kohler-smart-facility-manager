@@ -25,23 +25,23 @@ export function OccupancyHeatmap({ data, loading }: OccupancyHeatmapProps) {
 
   // Color interpolation for 0.0 to 1.0 occupancy
   const getCellColor = (val: number) => {
-    if (val <= 0.02) return "#161B22";
-    if (val < 0.2) return "#1C2735";
-    if (val < 0.4) return "#253D59";
-    if (val < 0.6) return "#335C8A";
-    if (val < 0.8) return "#477FB8";
-    return "#6B8CAE";
+    if (val <= 0.02) return "#141A22";
+    if (val < 0.2) return "#182438";
+    if (val < 0.4) return "#233959";
+    if (val < 0.6) return "#305482";
+    if (val < 0.8) return "#4373B0";
+    return "#5B8DEF";
   };
 
   return (
-    <div className="bg-[#161B22] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm transition-all">
+    <div className="bg-[#141A22] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm transition-all">
       {/* Collapsible Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <Users className="h-4 w-4 text-[#6B8CAE]" />
+          <Users className="h-4 w-4 text-[#5B8DEF]" />
           <span className="text-sm font-semibold text-white tracking-wide">
             Occupancy Pattern by Hour of Day
           </span>
@@ -118,12 +118,12 @@ export function OccupancyHeatmap({ data, loading }: OccupancyHeatmapProps) {
                 <div className="flex items-center gap-2">
                   <span>0% (Empty)</span>
                   <div className="flex gap-1 h-3 w-32 rounded overflow-hidden">
-                    <div className="flex-1 bg-[#161B22]" />
-                    <div className="flex-1 bg-[#1C2735]" />
-                    <div className="flex-1 bg-[#253D59]" />
-                    <div className="flex-1 bg-[#335C8A]" />
-                    <div className="flex-1 bg-[#477FB8]" />
-                    <div className="flex-1 bg-[#6B8CAE]" />
+                    <div className="flex-1 bg-[#141A22]" />
+                    <div className="flex-1 bg-[#182438]" />
+                    <div className="flex-1 bg-[#233959]" />
+                    <div className="flex-1 bg-[#305482]" />
+                    <div className="flex-1 bg-[#4373B0]" />
+                    <div className="flex-1 bg-[#5B8DEF]" />
                   </div>
                   <span>100% (Continuous Use)</span>
                 </div>
@@ -134,7 +134,7 @@ export function OccupancyHeatmap({ data, loading }: OccupancyHeatmapProps) {
           {/* Floating Tooltip */}
           {hoveredCell && (
             <div
-              className="fixed z-50 transform -translate-x-1/2 -translate-y-full px-2.5 py-1.5 bg-[#1F242C] border border-white/20 rounded shadow-xl text-xs pointer-events-none"
+              className="fixed z-50 transform -translate-x-1/2 -translate-y-full px-2.5 py-1.5 bg-[#1B222C] border border-white/20 rounded shadow-xl text-xs pointer-events-none"
               style={{ left: hoveredCell.x, top: hoveredCell.y }}
             >
               <div className="font-semibold text-white">{hoveredCell.fixture}</div>

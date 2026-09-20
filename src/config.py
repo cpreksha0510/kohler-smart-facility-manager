@@ -223,8 +223,8 @@ DASHBOARD_REFRESH_SECONDS = 5
 REPLAY_REFRESH_SECONDS = 3
 
 # ── Phase 3: LLM Layer (Section 5) ───────────────────────────────────────────
-GEMINI_MODEL_PRIMARY        = "gemini-3.6-flash"
-GEMINI_MODEL_FALLBACK       = "gemini-2.5-flash"
+GEMINI_MODEL_PRIMARY        = "gemini-3.5-flash-lite"
+GEMINI_MODEL_FALLBACK       = "gemini-3.6-flash"
 LLM_MAX_RETRIES             = 1
 LLM_RETRY_BACKOFF_SECONDS   = 2.0
 LLM_REQUEST_DELAY_SECONDS   = 0.6   # paces requests to respect Gemini free-tier RPM

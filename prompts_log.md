@@ -997,4 +997,150 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 
 **Files changed:** `frontend/components/Header.tsx`, `frontend/components/SustainabilityPanel.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
 
+---
+
+### Prompt 37 — Tickets View: Consistent Projections & Color Differentiation
+**Date:** 2026-09-19  
+**Branch:** `feature-extensions`  
+**Prompt given:**
+> Two fixes on the tickets view:
+> 
+> 1. Remove the special highlight/emphasis styling on the "+24 Hours" projection card specifically — right now it's visually distinct from the +1 Hour, +6 Hours, and +7 Days cards (different background/border), which is confusing since there's no clear reason shown for why that one horizon is special. Make all four projection cards consistent with each other.
+> 
+> 2. The yellow/amber color is currently reused for three different things: the "High" severity badge, the "slow drip" anomaly type tag, and (until fix #1) the +24hr card. This makes yellow feel overused and cluttered. Please differentiate:
+>    - Severity badges (Critical/High/Medium/Low) should each have their own distinct, muted color — keep High as a muted amber/ochre or shift it to a muted terracotta/rust if that reads more distinct from Critical's red
+>    - Anomaly type tags (slow drip, sustained leak, sensor fault, hygiene threshold) should use a completely separate, neutral color family — e.g., muted slate-blue or gray — since these are just labels, not urgency indicators, and shouldn't compete visually with severity
+> 
+> Show me the updated ticket card with both fixes so I can see severity and type tags now read as visually distinct categories.
+
+**What was built:**
+- **Consistent Projection Horizon Cards (`frontend/components/TicketsView.tsx`):**
+  - Removed special amber background (`bg-[#D99B26]/5`) and border (`border-[#D99B26]/20`) from the `+24 Hours` card.
+  - Normalized all four horizons (`+1 Hour`, `+6 Hours`, `+24 Hours`, `+7 Days`) to identical neutral dark styling (`bg-white/[0.02] border border-white/[0.03]`) with white semibold loss volume and muted rupee costs.
+  - Replaced the yellow warning icon with a neutral `<Clock />` icon in the horizon ticker header.
+- **Severity Badge Palette Differentiation:**
+  - Shifted **High** severity to a muted terracotta/rust (`#C86843` / `#E28E6E` text, `bg-[#C86843]/15`), distinctly separated from Critical's crimson red (`#D05353`).
+  - Set **Medium** to muted warm brass/ochre (`#C5A059` / `#DBC07E`).
+  - Set **Low** to muted neutral slate (`#8B949E`).
+  - Aligned ticket card stripe indicators and table badges with the updated palette.
+- **Neutral Anomaly Type Tags (`getAnomalyTypeBadge`):**
+  - Created a dedicated `getAnomalyTypeBadge` component in `frontend/components/TicketsView.tsx` and `frontend/components/TicketsTable.tsx`.
+  - Styled all anomaly tags (e.g. `Slow Drip`, `Sustained Leak`, `Sensor Fault`) in a neutral muted slate-blue family (`bg-[#1A2230] text-[#8FA3BB] border border-[#2B3B50]`).
+  - Removed any yellow/amber accents from anomaly labels, ensuring they read clearly as descriptive category labels rather than urgency indicators.
+- **Verification:**
+  - `npm run build` completed with zero TypeScript errors.
+  - Live browser screenshot captured: `active_ticket_card_1789831788169.png`.
+
+---
+
+### Prompt 38 — Complete Visual Audit & Unified Color System Overhaul
+**Date:** 2026-09-19  
+**Branch:** `feature-extensions`  
+**Prompt given:**
+> I want ONE consistent color system applied across the entire UI in a single pass — replacing all the piecemeal color fixes from previous prompts. Please treat this as a full visual audit and unification, not another individual fix.
+> 
+> Target look: moderately saturated colors — NOT the fully muted/desaturated palette currently on the flow rate chart, but also NOT bright, high-saturation "default AI dashboard" colors. Aim for roughly mid-saturation tones that feel intentional and calm but still have enough color presence to be visually engaging — think professional product dashboard (e.g., Linear, Notion, Vercel's dashboard), not a monochrome ops-console look, and not neon SaaS either.
+> 
+> Define ONE explicit palette first, before touching any component:
+> 1. A primary brand accent color (moderately saturated, used for primary actions/active states/KOHLER branding)
+> 2. A secondary accent (a complementary moderately-saturated color, for secondary emphasis)
+> 3. Zone colors for the flow rate telemetry chart: 4 distinct, moderately-saturated colors that are clearly distinguishable from each other and readable against the dark background. The filter chips for these zones MUST use these exact same 4 colors.
+> 4. Status/severity colors: Critical, High, Medium, Low. These can be the most saturated colors in the system since they signal urgency, but should still feel grounded rather than neon.
+> 5. Anomaly type tags: should sit clearly in a neutral category, completely distinct from severity.
+> 6. Eco/sustainability metrics (saved water, avoided cost): an appropriate green-adjacent tone that fits the palette.
+> 7. Background and neutral grays: specify the surface tiers (base background, card background, elevated surface, border, text primary, text muted).
+> 
+> Show me this palette with hex values, what each is used for, and how they relate to each other. Once I confirm the palette, apply it across every component in the app in one pass. Then show me full-page screenshots of the Dashboard, Tickets, and Sustainability tabs once applied, so I can confirm everything now reads as one consistent system.
+
+**What was built:**
+- **Approved Unified Color System Specification:**
+  - **Primary Brand Accent:** Warm Brushed Brass (`#D4A359`) — Primary actions, active navigation indicator, brand avatar, replay slider, evidence toggle.
+  - **Secondary Accent:** Precision Steel Blue (`#4D88C7`) — Secondary emphasis, AI Copilot highlights, AI Analysis badges, telemetry metric card icons.
+  - **Monitored Zone Colors (Synchronized across Flow Chart, Filter Chips & Sustainability Breakdown):**
+    - Restroom A (Departure): Cerulean Blue (`#5B8DEF`)
+    - Restroom B (Arrival): Jade Emerald (`#3EA882`)
+    - Family Room: Warm Marigold (`#E09F3E`)
+    - Staff WC: Amethyst Purple (`#9D7FE3`)
+  - **Severity Urgency Colors (Highest Chroma Hierarchy):**
+    - Critical: Coral Crimson (`#F04438`)
+    - High: Vivid Terracotta (`#F38744`)
+    - Medium: Amber Gold (`#EAAA08`)
+    - Low: Slate Indigo (`#717BBC`)
+  - **Category Metadata Tags (Neutral Slate Family):**
+    - Anomaly types (`Slow Drip`, `Sustained Leak`, etc.): `#7C95B6` text on `#1A2332` background with `#2D3B4E` border (100% separated from severity).
+  - **Sustainability & Eco Metric:**
+    - Mint Emerald (`#2EB88A`) — Estimated water saved, avoided cost, counterfactual model indicator, live telemetry status dot.
+  - **Neutrals & Surfaces:**
+    - Canvas Base: Obsidian (`#0B0F14`)
+    - Card Background: Dark Slate (`#141A22`)
+    - Elevated Surface: Deep Slate (`#1B222C`)
+    - Header Surface: Charcoal Slate (`#10141A`)
+    - Borders: Border Subtle (`rgba(255, 255, 255, 0.08)`) / Border Emphasized (`rgba(255, 255, 255, 0.15)`)
+    - Primary Text: Ice White (`#F0F6FC`)
+    - Muted Text: Slate Muted (`#8B949E`)
+- **Complete Multi-Component Migration:**
+  - `frontend/app/globals.css`: Updated CSS variables with unified tokens.
+  - `frontend/components/Header.tsx`: Unified brand badges, active tab underlines (`#D4A359`), Live Telemetry (`#2EB88A`), Copilot button (`#4D88C7`).
+  - `frontend/components/MetricCards.tsx`: Harmonized cards to `#141A22` surfaces with `#4D88C7`, `#F38744`, `#D4A359` icons.
+  - `frontend/components/FlowRateChart.tsx`: Applied the 4 unified zone colors across all Recharts lines, legend badges, and filter chips.
+  - `frontend/components/OccupancyHeatmap.tsx`: Formatted with monochromatic cerulean scale culminating in `#5B8DEF`.
+  - `frontend/components/TicketsView.tsx` & `TicketsTable.tsx`: Full severity badge alignment (`#F04438`, `#F38744`, `#EAAA08`, `#717BBC`), neutral anomaly tags, and `#141A22` cards.
+  - `frontend/components/EvidencePanel.tsx`: Updated Evidence Strength badges (`#2EB88A`, `#EAAA08`, `#717BBC`), 4 multi-signal progress bars (`#4D88C7`, `#D4A359`, `#F38744`, `#2EB88A`), and telemetry facts grid.
+  - `frontend/components/SustainabilityPanel.tsx`: Aligned zone dots (`#5B8DEF`, `#3EA882`, `#E09F3E`, `#9D7FE3`), metric cards (`#F04438`, `#2EB88A`, `#EAAA08`, `#D4A359`), and collapsible methodology accordion.
+  - `frontend/components/AiCopilotDrawer.tsx`: Updated bot avatar (`#4D88C7`), user bubble (`#4D88C7`), send button and bold text (`#D4A359`).
+  - `frontend/components/ReplayScrubber.tsx`: Styled scrubber controls and timeline slider to `#D4A359`.
+  - `frontend/app/page.tsx`: Canvas set to `#0B0F14` and footer updated to `#141A22`.
+- **Verification:**
+  - `npm run build` compiled cleanly with zero TypeScript errors.
+  - Live browser subagent captured full-page screenshots across all three primary tabs:
+    - Dashboard tab: `dashboard_tab_1789833355402.png`
+    - Tickets tab: `tickets_tab_1789833427052.png`
+    - Sustainability tab: `sustainability_tab_1789833497162.png`
+
+**Files changed:** `frontend/app/globals.css`, `frontend/components/Header.tsx`, `frontend/components/MetricCards.tsx`, `frontend/components/FlowRateChart.tsx`, `frontend/components/OccupancyHeatmap.tsx`, `frontend/components/TicketsView.tsx`, `frontend/components/TicketsTable.tsx`, `frontend/components/EvidencePanel.tsx`, `frontend/components/SustainabilityPanel.tsx`, `frontend/components/AiCopilotDrawer.tsx`, `frontend/components/ReplayScrubber.tsx`, `frontend/app/page.tsx`, `prompts_log.md`, `walkthrough.md`.
+
+---
+
+### Prompt 39 — Icon-Only Color Policy: Neutral Text Across Metric Cards
+**Date:** 2026-09-19  
+**Branch:** `feature-extensions`  
+**Prompt given:**
+> On the Sustainability tab's metric cards (Water Waste Volume, Estimated Water Saved, Unaddressed Risk, Primary Loss Hotspot), remove all colored text — currently the main numbers and sub-labels are colored (red, green, amber) per card. Change ALL text in these cards to the same neutral white/light-gray tone used elsewhere in the UI (headings, labels, everything).
+> 
+> Keep the ICONS in their small colored badge backgrounds (the flame/droplet, trend arrow, warning triangle, building icon) exactly as they are — that's the only place color should remain on these cards, since it still gives a quick visual cue without every card competing with colored text.
+> 
+> Apply the same rule anywhere else in the app where numbers/labels are currently colored instead of using icon-only color — audit the whole app for this pattern, not just the Sustainability tab, so it's consistent everywhere per our unified palette approach.
+> 
+> Show me a screenshot of the updated Sustainability tab.
+
+**What was built:**
+- **Sustainability Tab Metric Cards (`frontend/components/SustainabilityPanel.tsx`):**
+  - Converted all 4 cards (Water Waste Volume, Estimated Water Saved, Unaddressed Risk, Primary Loss Hotspot) to uniform neutral text:
+    - Card headings: neutral light gray (`text-[#8B949E] uppercase tracking-wider`).
+    - Main values: neutral white (`text-[#F0F6FC] font-bold font-mono`).
+    - Sub-labels: neutral light gray (`text-[#8B949E] font-mono mt-1`).
+  - Standardized card borders to neutral `border-white/[0.08]` and `hover:border-white/[0.15]`, removing green/amber border highlights.
+  - Kept all icon badges in their distinct color tones (`#F04438`, `#2EB88A`, `#EAAA08`, `#D4A359`), preserving immediate visual cue without competing text colors.
+  - Aligned Zone Conservation Breakdown sub-text to neutral gray (`text-[#8B949E]`), relying on zone indicator dots for color attribution.
+- **Global Application Audit:**
+  - **Overview Metric Cards (`frontend/components/MetricCards.tsx`):**
+    - Changed Estimated Water Loss value from blue (`text-[#4D88C7]`) to neutral white (`text-[#F0F6FC]`).
+    - Changed Flagged Tickets sub-label `{openTickets} active` from orange (`text-[#F38744]`) to neutral white (`text-[#F0F6FC]`).
+    - Normalized all card borders to neutral `border-white/[0.08] hover:border-white/[0.15]`.
+  - **Tickets View (`frontend/components/TicketsView.tsx`):**
+    - Normalized resolved ticket intervention impact sub-cards (`Actual Water Lost`, `Estimated Water Saved`, `Estimated Avoided Cost`) to neutral white values (`text-[#F0F6FC]`) and gray labels (`text-[#8B949E]`).
+    - Preserved icon badge color (`TrendingDown` in `#2EB88A`) for the visual cue.
+  - **Evidence Panel (`frontend/components/EvidencePanel.tsx`):**
+    - Normalized Observed Flow and Total Water Lost in facts grid to neutral white (`text-[#F0F6FC]`).
+  - **Header (`frontend/components/Header.tsx`):**
+    - Unified active navigation tab label text to neutral white (`text-white font-semibold`), letting the icon convey the active tab accent.
+- **Verification:**
+  - `npm run build` compiled cleanly in 2.8s with zero TypeScript errors.
+  - Browser subagent captured live screenshot: `sustainability_tab_updated_1789842534065.png`.
+
+**Files changed:** `frontend/components/SustainabilityPanel.tsx`, `frontend/components/MetricCards.tsx`, `frontend/components/TicketsView.tsx`, `frontend/components/EvidencePanel.tsx`, `frontend/components/Header.tsx`, `prompts_log.md`, `walkthrough.md`.
+
+
+
+
 

@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base: #0D1117;
-  --bg-surface: #161B22;
-  --bg-surface-elevated: #1F242C;
-  --bg-surface-hover: #262C36;
+  /* Surfaces & Neutrals */
+  --bg-base: #0B0F14;
+  --bg-surface: #141A22;
+  --bg-surface-elevated: #1B222C;
+  --bg-surface-hover: #222B38;
   
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
 
-  --accent-slate: #6B8CAE;
-  --accent-brass: #C5A059;
-  --accent-cyan: #38BDF8;
+  /* Primary Brand & Secondary Accents */
+  --accent-brand: #D4A359;
+  --accent-brand-hover: #E5B86E;
+  --accent-secondary: #4D88C7;
+  --accent-secondary-hover: #629BD8;
   
+  /* Text Neutrals */
   --text-primary: #F0F6FC;
   --text-secondary: #C9D1D9;
   --text-muted: #8B949E;
   
-  --sev-critical: #E4572E;
-  --sev-high: #F0A202;
-  --sev-medium: #D9B44A;
-  --sev-low: #6E7681;
+  /* Severity Urgency Hierarchy (Highest Saturation in UI) */
+  --sev-critical: #F04438;
+  --sev-high: #F38744;
+  --sev-medium: #EAAA08;
+  --sev-low: #717BBC;
+
+  /* 4-Zone Telemetry Chart Palette */
+  --zone-restroom-a: #5B8DEF;
+  --zone-restroom-b: #3EA882;
+  --zone-family-room: #E09F3E;
+  --zone-staff-wc: #9D7FE3;
+
+  /* Anomaly Metadata Category Tags (Neutral) */
+  --tag-bg: #1A2332;
+  --tag-text: #7C95B6;
+  --tag-border: #2D3B4E;
+
+  /* Sustainability & Conservation Metrics */
+  --eco-saved: #2EB88A;
 }
 
 body {
@@ -39,17 +58,17 @@ body {
   background: var(--bg-base);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2D333B;
+  background: #242D3A;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #444C56;
+  background: #3A4657;
 }
 
 .glow-brass {
-  box-shadow: 0 0 20px -5px rgba(197, 160, 89, 0.15);
+  box-shadow: 0 0 20px -5px rgba(212, 163, 89, 0.18);
 }
 
-.glow-slate {
-  box-shadow: 0 0 20px -5px rgba(107, 140, 174, 0.15);
+.glow-steel {
+  box-shadow: 0 0 20px -5px rgba(77, 136, 199, 0.18);
 }

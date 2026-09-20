@@ -27,10 +27,10 @@ const ZONE_LABELS: Record<string, string> = {
 };
 
 const ZONE_COLORS: Record<string, string> = {
-  T2_Restroom_A: "#6B8CAE",
-  T2_Restroom_B: "#789A8B",
-  T2_Family_Room: "#B08D57",
-  T2_Staff_WC: "#847E9C",
+  T2_Restroom_A: "#5B8DEF",
+  T2_Restroom_B: "#3EA882",
+  T2_Family_Room: "#E09F3E",
+  T2_Staff_WC: "#9D7FE3",
 };
 
 export function SustainabilityPanel({ summary, loading }: SustainabilityPanelProps) {
@@ -39,13 +39,13 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
   if (loading || !summary) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-20 bg-[#161B22] border border-white/[0.08] rounded-xl" />
+        <div className="h-20 bg-[#141A22] border border-white/[0.08] rounded-xl" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-[#161B22] border border-white/[0.08] rounded-xl" />
+            <div key={i} className="h-28 bg-[#141A22] border border-white/[0.08] rounded-xl" />
           ))}
         </div>
-        <div className="h-48 bg-[#161B22] border border-white/[0.08] rounded-xl" />
+        <div className="h-48 bg-[#141A22] border border-white/[0.08] rounded-xl" />
       </div>
     );
   }
@@ -63,14 +63,14 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
   return (
     <div className="space-y-6">
       {/* 1. Dedicated Header Banner */}
-      <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+      <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[#789A8B]/15 border border-[#789A8B]/30 text-[#98BAAB]">
+            <div className="p-2.5 rounded-xl bg-[#2EB88A]/15 border border-[#2EB88A]/30 text-[#2EB88A]">
               <Leaf className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white tracking-wide uppercase flex items-center gap-2">
+              <h2 className="text-base font-bold text-[#F0F6FC] tracking-wide uppercase flex items-center gap-2">
                 Sustainability &amp; Water Conservation Impact
               </h2>
               <p className="text-xs text-[#8B949E] mt-0.5">
@@ -81,7 +81,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
 
           {/* Counterfactual Simulation Model Badge */}
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#789A8B]/10 text-[#98BAAB] border border-[#789A8B]/25">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#2EB88A]/10 text-[#2EB88A] border border-[#2EB88A]/25">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Counterfactual Simulation Model (24h Baseline)</span>
             </span>
@@ -92,80 +92,80 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
       {/* 2. Top-Level Metric Cards (Exactly 1 Main Number + 1 Short Supporting Line per Card) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card A: Water Waste Volume */}
-        <div className="bg-[#161B22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
+        <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Water Waste Volume
             </span>
-            <div className="h-8 w-8 rounded-lg bg-[#E4572E]/10 border border-[#E4572E]/20 flex items-center justify-center text-[#E4572E]">
+            <div className="h-8 w-8 rounded-lg bg-[#F04438]/10 border border-[#F04438]/20 flex items-center justify-center text-[#F04438]">
               <Droplets className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-white tracking-tight">
+            <div className="text-2xl font-bold font-mono text-[#F0F6FC] tracking-tight">
               {water_waste_liters.toLocaleString()} <span className="text-xs font-normal text-[#8B949E]">L</span>
             </div>
-            <p className="text-xs text-[#E4572E] font-mono mt-1">
+            <p className="text-xs text-[#8B949E] font-mono mt-1">
               ₹{cost_impact_inr.toFixed(2)} municipal tariff impact
             </p>
           </div>
         </div>
 
         {/* Card B: Estimated Water Saved (Counterfactual) */}
-        <div className="bg-[#161B22] border border-[#789A8B]/30 hover:border-[#789A8B]/50 rounded-xl p-4.5 transition-all shadow-sm bg-gradient-to-b from-[#789A8B]/5 to-transparent">
+        <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[#98BAAB] uppercase tracking-wider">
+            <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Estimated Water Saved
             </span>
-            <div className="h-8 w-8 rounded-lg bg-[#789A8B]/15 border border-[#789A8B]/30 flex items-center justify-center text-[#98BAAB]">
+            <div className="h-8 w-8 rounded-lg bg-[#2EB88A]/15 border border-[#2EB88A]/30 flex items-center justify-center text-[#2EB88A]">
               <TrendingDown className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-[#98BAAB] tracking-tight">
+            <div className="text-2xl font-bold font-mono text-[#F0F6FC] tracking-tight">
               {water_saved_liters.toLocaleString()} <span className="text-xs font-normal text-[#8B949E]">L</span>
             </div>
-            <p className="text-xs text-[#98BAAB] font-mono mt-1">
+            <p className="text-xs text-[#8B949E] font-mono mt-1">
               ₹{avoided_cost_inr.toFixed(2)} estimated avoided cost
             </p>
           </div>
         </div>
 
         {/* Card C: Unaddressed Risk (+24h) */}
-        <div className="bg-[#161B22] border border-white/[0.08] hover:border-[#D99B26]/30 rounded-xl p-4.5 transition-all shadow-sm">
+        <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Unaddressed Risk (+24h)
             </span>
-            <div className="h-8 w-8 rounded-lg bg-[#D99B26]/10 border border-[#D99B26]/20 flex items-center justify-center text-[#D99B26]">
+            <div className="h-8 w-8 rounded-lg bg-[#EAAA08]/10 border border-[#EAAA08]/20 flex items-center justify-center text-[#EAAA08]">
               <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-[#D99B26] tracking-tight">
+            <div className="text-2xl font-bold font-mono text-[#F0F6FC] tracking-tight">
               +{projected_unresolved_loss_24h_liters.toLocaleString()} <span className="text-xs font-normal text-[#8B949E]">L</span>
             </div>
-            <p className="text-xs text-[#D99B26] font-mono mt-1">
+            <p className="text-xs text-[#8B949E] font-mono mt-1">
               +₹{(projected_unresolved_loss_24h_liters * 0.05).toFixed(2)} if unresolved for 24h
             </p>
           </div>
         </div>
 
         {/* Card D: Primary Loss Hotspot */}
-        <div className="bg-[#161B22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
+        <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Primary Loss Hotspot
             </span>
-            <div className="h-8 w-8 rounded-lg bg-[#B08D57]/10 border border-[#B08D57]/20 flex items-center justify-center text-[#C9A873]">
+            <div className="h-8 w-8 rounded-lg bg-[#D4A359]/10 border border-[#D4A359]/20 flex items-center justify-center text-[#D4A359]">
               <Building2 className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-white tracking-tight">
+            <div className="text-2xl font-bold font-mono text-[#F0F6FC] tracking-tight">
               {highest_waste_fixture ? highest_waste_fixture.fixture_id : "None"}
             </div>
-            <p className="text-xs text-[#C9A873] font-mono mt-1 truncate">
+            <p className="text-xs text-[#8B949E] font-mono mt-1 truncate">
               {highest_waste_fixture
                 ? `${highest_waste_fixture.zone_id.replace("T2_", "").replace("_", " ")} · ${highest_waste_fixture.water_waste_liters} L lost`
                 : "Normal operations"}
@@ -175,10 +175,10 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
       </div>
 
       {/* 3. Zone Conservation Breakdown */}
-      <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-5 shadow-sm space-y-4">
+      <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-white/[0.06]">
           <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-[#F0F6FC] uppercase tracking-wider">
               Zone Conservation Breakdown
             </h3>
             <p className="text-xs text-[#8B949E] mt-0.5">
@@ -192,17 +192,17 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {zone_breakdown.map((z) => {
-            const color = ZONE_COLORS[z.zone_id] || "#6B8CAE";
+            const color = ZONE_COLORS[z.zone_id] || "#5B8DEF";
             const label = ZONE_LABELS[z.zone_id] || z.zone_id;
             return (
               <div
                 key={z.zone_id}
-                className="bg-[#0D1117] p-3.5 rounded-lg border border-white/[0.04] flex items-center justify-between gap-3"
+                className="bg-[#0B0F14] p-3.5 rounded-lg border border-white/[0.04] flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <div className="min-w-0">
-                    <span className="text-xs font-semibold text-white block truncate">{label}</span>
+                    <span className="text-xs font-semibold text-[#F0F6FC] block truncate">{label}</span>
                     <span className="text-[11px] text-[#8B949E]">
                       {z.open_count} open · {z.resolved_count} resolved
                     </span>
@@ -210,10 +210,10 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className="text-xs font-mono font-bold text-white">
+                  <div className="text-xs font-mono font-bold text-[#F0F6FC]">
                     {z.water_waste_liters.toLocaleString()} L <span className="text-[10px] font-normal text-[#8B949E]">lost</span>
                   </div>
-                  <div className="text-xs font-mono text-[#98BAAB] font-semibold mt-0.5">
+                  <div className="text-xs font-mono text-[#8B949E] font-medium mt-0.5">
                     {z.water_saved_liters > 0
                       ? `+${z.water_saved_liters.toLocaleString()} L saved`
                       : "0.0 L saved"}
@@ -226,15 +226,15 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
       </div>
 
       {/* 4. Collapsible Conservation Methodology Accordion (Collapsed by Default) */}
-      <div className="bg-[#161B22] border border-white/[0.08] rounded-xl p-4.5 shadow-sm">
+      <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-4.5 shadow-sm">
         <button
           id="toggle-methodology-accordion"
           onClick={() => setIsMethodologyOpen(!isMethodologyOpen)}
-          className="w-full flex items-center justify-between text-left text-xs font-medium text-[#8B949E] hover:text-white transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between text-left text-xs font-medium text-[#8B949E] hover:text-[#F0F6FC] transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 text-[#C5A059]" />
-            <span className="font-semibold text-white">Conservation Methodology &amp; Baseline Model</span>
+            <HelpCircle className="h-4 w-4 text-[#D4A359]" />
+            <span className="font-semibold text-[#F0F6FC]">Conservation Methodology &amp; Baseline Model</span>
             <span className="text-[11px] text-[#8B949E] hidden sm:inline">
               — click to {isMethodologyOpen ? "collapse" : "view details"}
             </span>
@@ -249,18 +249,18 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
         {isMethodologyOpen && (
           <div className="mt-3.5 pt-3.5 border-t border-white/[0.06] text-xs text-[#8B949E] space-y-3 leading-relaxed">
             <p>
-              <strong className="text-white">Counterfactual Simulation Model:</strong> Prevented waste represents the
+              <strong className="text-[#F0F6FC]">Counterfactual Simulation Model:</strong> Prevented waste represents the
               simulated water volume that would have escaped during the standard 24-hour unassisted inspection cycle (1,440 minutes)
               minus the actual volume lost before technician resolution.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-[11px] text-[#C9D1D9]">
-              <div className="bg-[#0D1117] p-2.5 rounded-lg border border-white/[0.04]">
+              <div className="bg-[#0B0F14] p-2.5 rounded-lg border border-white/[0.04]">
                 <span className="text-[#8B949E] block text-[10px] uppercase font-sans font-semibold mb-1">
                   Avoided Volume Formula
                 </span>
                 Max((Observed LPM × 1,440 min) − Actual Loss, 0)
               </div>
-              <div className="bg-[#0D1117] p-2.5 rounded-lg border border-white/[0.04]">
+              <div className="bg-[#0B0F14] p-2.5 rounded-lg border border-white/[0.04]">
                 <span className="text-[#8B949E] block text-[10px] uppercase font-sans font-semibold mb-1">
                   Utility Tariff Rate
                 </span>
