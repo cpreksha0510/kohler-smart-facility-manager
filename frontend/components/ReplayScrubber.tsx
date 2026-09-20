@@ -62,7 +62,7 @@ export function ReplayScrubber({
   const progressPercent = Math.min(100, Math.round((currentHours / simDurationHours) * 100));
 
   return (
-    <div className="bg-[#0F141D] rounded-md p-5 shadow-lg">
+    <div className="bg-[#101010] rounded-md p-5 shadow-lg">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
         {/* Controls: Play, Reset, Speed */}
         <div className="flex items-center gap-3">
@@ -76,14 +76,14 @@ export function ReplayScrubber({
 
           <button
             onClick={onReset}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-[#0B0F14] hover:bg-white/10 text-[#8B949E] hover:text-[#F0F6FC] border border-white/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-[#080808] hover:bg-white/10 text-[#8B949E] hover:text-[#F0F6FC] border border-white/10 transition-all"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             <span>Reset (00:00)</span>
           </button>
 
           {/* Speed Pills */}
-          <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08]">
+          <div className="flex items-center bg-[#080808] p-1 rounded-lg border border-white/[0.08]">
             <span className="text-[10px] text-[#8B949E] px-2 font-medium">Speed:</span>
             {[0.5, 1, 2, 4, 8].map((s) => (
               <button
@@ -125,7 +125,7 @@ export function ReplayScrubber({
           step="0.1"
           value={currentHours}
           onChange={(e) => onChangeHours(parseFloat(e.target.value))}
-          className="w-full h-2 bg-[#0B0F14] rounded-lg appearance-none cursor-pointer accent-[#D4A359]"
+          className="w-full h-2 bg-[#080808] rounded-lg appearance-none cursor-pointer accent-[#D4A359]"
         />
         <div className="flex justify-between text-[10px] text-[#8B949E] font-mono">
           {simDurationHours >= 168 ? (

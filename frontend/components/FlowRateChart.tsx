@@ -162,7 +162,7 @@ export function FlowRateChart({
   };
 
   return (
-    <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
+    <div className="bg-[#101010] rounded-md p-5 shadow-sm">
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <div>
@@ -192,7 +192,7 @@ export function FlowRateChart({
 
         {/* View Mode Radio & Zone Chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-[#0B0F14] p-1 rounded-md">
+          <div className="flex items-center bg-[#080808] p-1 rounded-md">
             <button
               onClick={() => setChartMode("zone_total")}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${

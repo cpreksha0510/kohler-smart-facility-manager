@@ -32,7 +32,7 @@ export function DailyDigestCard({ digests }: DailyDigestCardProps) {
   };
 
   return (
-    <div className="bg-[#0F141D] border-l-4 border-l-[#C5A059] rounded-md p-5 shadow-sm">
+    <div className="bg-[#101010] border-l-4 border-l-[#C5A059] rounded-md p-5 shadow-sm">
       {/* Header with date selector */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export function DailyDigestCard({ digests }: DailyDigestCardProps) {
         </div>
 
         {/* Date Tabs */}
-        <div className="flex items-center bg-[#0D1117] p-1 rounded-lg border border-white/[0.08]">
+        <div className="flex items-center bg-[#080808] p-1 rounded-lg border border-white/[0.08]">
           {dates.map((d) => (
             <button
               key={d}

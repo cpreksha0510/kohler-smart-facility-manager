@@ -145,6 +145,10 @@ def get_overview():
 
 # ── Readings & Flow Rate Telemetry ─────────────────────────────────────────────
 
+_ZONE_TOTALS_CACHE: dict = {}
+_READINGS_CACHE: dict = {}
+
+
 @app.get("/api/readings")
 def get_readings(
     downsample_mins: int = Query(5, ge=1, le=60),
@@ -156,50 +160,69 @@ def get_readings(
     Return time-series flow rate readings downsampled to regular intervals
     for responsive chart rendering.
     """
-    df = get_readings_df(str(DB_PATH))
-    if df.empty:
-        return []
+    cache_key = (downsample_mins, zone_id, fixture_id, up_to_ts)
+    if cache_key in _READINGS_CACHE:
+        return _READINGS_CACHE[cache_key]
 
+    conn = get_connection(str(DB_PATH))
+    sql = """
+        SELECT substr(timestamp, 1, 16) AS timestamp_str, zone_id, fixture_id, flow_rate_lpm, occupancy, sensor_status
+        FROM sensor_readings
+        WHERE CAST(substr(timestamp, 15, 2) AS integer) % ? = 0
+    """
+    params = [downsample_mins]
     if zone_id:
-        df = df[df["zone_id"] == zone_id]
+        sql += " AND zone_id = ?"
+        params.append(zone_id)
     if fixture_id:
-        df = df[df["fixture_id"] == fixture_id]
+        sql += " AND fixture_id = ?"
+        params.append(fixture_id)
     if up_to_ts:
-        ts_limit = pd.to_datetime(up_to_ts)
-        df = df[df["timestamp"] <= ts_limit]
+        sql += " AND timestamp <= ?"
+        params.append(up_to_ts)
+    sql += " ORDER BY timestamp ASC"
 
-    # Downsample by minute interval
-    if downsample_mins > 1:
-        df = df[df["timestamp"].dt.minute % downsample_mins == 0]
-
-    # Aggregate zone totals as well for fast zone-view rendering
-    df["timestamp_str"] = df["timestamp"].dt.strftime("%Y-%m-%d %H:%M")
-    
-    records = df[[
-        "timestamp_str", "zone_id", "fixture_id", "flow_rate_lpm", "occupancy", "sensor_status"
-    ]].to_dict(orient="records")
-
+    rows = conn.execute(sql, params).fetchall()
+    records = [
+        {
+            "timestamp_str": r[0].replace("T", " "),
+            "zone_id": r[1],
+            "fixture_id": r[2],
+            "flow_rate_lpm": round(r[3], 2),
+            "occupancy": r[4],
+            "sensor_status": r[5],
+        }
+        for r in rows
+    ]
+    _READINGS_CACHE[cache_key] = records
     return records
 
 
 @app.get("/api/readings/zone-totals")
 def get_zone_totals(downsample_mins: int = Query(5, ge=1, le=60), up_to_ts: Optional[str] = None):
     """Return pre-aggregated flow rate sums per zone per timestamp."""
-    df = get_readings_df(str(DB_PATH))
-    if df.empty:
-        return []
+    cache_key = (downsample_mins, up_to_ts)
+    if cache_key in _ZONE_TOTALS_CACHE:
+        return _ZONE_TOTALS_CACHE[cache_key]
 
+    conn = get_connection(str(DB_PATH))
+    sql = """
+        SELECT substr(timestamp, 1, 16) AS timestamp_str, zone_id, SUM(flow_rate_lpm) AS flow_rate_lpm
+        FROM sensor_readings
+        WHERE CAST(substr(timestamp, 15, 2) AS integer) % ? = 0
+    """
+    params = [downsample_mins]
     if up_to_ts:
-        ts_limit = pd.to_datetime(up_to_ts)
-        df = df[df["timestamp"] <= ts_limit]
+        sql += " AND timestamp <= ?"
+        params.append(up_to_ts)
+    sql += " GROUP BY timestamp_str, zone_id ORDER BY timestamp_str ASC"
 
-    if downsample_mins > 1:
-        df = df[df["timestamp"].dt.minute % downsample_mins == 0]
-
-    agg = df.groupby(["timestamp", "zone_id"], as_index=False)["flow_rate_lpm"].sum()
-    agg["timestamp_str"] = agg["timestamp"].dt.strftime("%Y-%m-%d %H:%M")
-
-    records = agg[["timestamp_str", "zone_id", "flow_rate_lpm"]].to_dict(orient="records")
+    rows = conn.execute(sql, params).fetchall()
+    records = [
+        {"timestamp_str": r[0].replace("T", " "), "zone_id": r[1], "flow_rate_lpm": round(r[2], 2)}
+        for r in rows
+    ]
+    _ZONE_TOTALS_CACHE[cache_key] = records
     return records
 
 

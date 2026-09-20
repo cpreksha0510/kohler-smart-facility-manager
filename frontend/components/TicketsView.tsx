@@ -177,7 +177,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
   return (
     <div className="space-y-6">
       {/* ── Top Filtering & Controls Toolbar ─────────────────────────────────── */}
-      <div className="bg-[#0F141D] rounded-md p-4.5 shadow-sm">
+      <div className="bg-[#101010] rounded-md p-4.5 shadow-sm">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Filter Dropdowns */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -190,7 +190,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="bg-[#0B0F14] border border-white/15 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#D4A359]"
+              className="bg-[#080808] border border-white/15 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#D4A359]"
             >
               <option value="all">All Zones</option>
               <option value="T2_Restroom_A">T2_Restroom_A (Departure)</option>
@@ -247,7 +247,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
         </div>
 
         {activeTickets.length === 0 ? (
-          <div className="bg-[#0F141D] rounded-md p-10 text-center text-xs text-[#8B949E]">
+          <div className="bg-[#101010] rounded-md p-10 text-center text-xs text-[#8B949E]">
             No active tickets matching the selected filters. All anomalies resolved or suppressed.
           </div>
         ) : (
@@ -265,7 +265,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
               return (
                 <div
                   key={t.ticket_id}
-                  className="bg-[#0F141D] rounded-md p-5 shadow-sm transition-all relative overflow-hidden"
+                  className="bg-[#101010] rounded-md p-5 shadow-sm transition-all relative overflow-hidden"
                 >
                   {/* Left severity indicator bar */}
                   <div
@@ -285,7 +285,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                     </div>
 
                     {/* Status Button Group: Open | Dispatched | Resolved */}
-                    <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08] self-start sm:self-auto shrink-0">
+                    <div className="flex items-center bg-[#080808] p-1 rounded-lg border border-white/[0.08] self-start sm:self-auto shrink-0">
                       <button
                         onClick={() => handleStatusClick(t, "open")}
                         className={`px-3 py-1 rounded text-xs font-medium transition-all ${
@@ -360,7 +360,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
 
                   {/* AI Analysis Explanation Sub-card */}
                   {t.explanation && (
-                    <div className="mt-2 pt-3 border-t border-white/[0.06] bg-[#0B0F14]/70 rounded-lg p-3 border border-white/[0.04]">
+                    <div className="mt-2 pt-3 border-t border-white/[0.06] bg-[#080808] rounded-lg p-3 border border-white/[0.04]">
                       <div className="flex items-start gap-2.5">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-[#4D88C7]/15 text-[#4D88C7] border border-[#4D88C7]/30 shrink-0 mt-0.5">
                           <Sparkles className="h-2.5 w-2.5" /> AI Analysis
@@ -433,7 +433,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
           </div>
 
           {resolvedTickets.length === 0 ? (
-            <div className="bg-[#0F141D] rounded-md p-8 text-center text-xs text-[#8B949E]">
+            <div className="bg-[#101010] rounded-md p-8 text-center text-xs text-[#8B949E]">
               No resolved tickets recorded yet.
             </div>
           ) : (
@@ -441,7 +441,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
               {resolvedTickets.map((t) => (
                 <div
                   key={t.ticket_id}
-                  className="bg-[#0F141D] rounded-md p-4.5 opacity-90 transition-all"
+                  className="bg-[#101010] rounded-md p-4.5 opacity-90 transition-all"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-white/[0.04]">
                     <div className="flex flex-wrap items-center gap-2">
@@ -459,7 +459,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       {/* Reopen Action */}
                       <button
                         onClick={() => handleStatusClick(t, "open")}
-                        className="text-xs px-2.5 py-1 rounded bg-[#0B0F14] hover:bg-white/10 text-[#8B949E] hover:text-white border border-white/10 transition-all"
+                        className="text-xs px-2.5 py-1 rounded bg-[#080808] hover:bg-white/10 text-[#8B949E] hover:text-white border border-white/10 transition-all"
                       >
                         Reopen
                       </button>
@@ -481,7 +481,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
 
                   {/* Feature 2: Intervention Impact (Section 2.7) */}
                   {t.sustainability?.intervention_impact && (
-                    <div className="mt-2.5 p-3 bg-[#0B0F14] border border-white/[0.08] rounded-lg text-xs space-y-2">
+                    <div className="mt-2.5 p-3 bg-[#080808] border border-white/[0.08] rounded-lg text-xs space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#F0F6FC] text-[11px]">
                           <span className="p-1 rounded bg-[#2EB88A]/15 text-[#2EB88A]">
@@ -495,19 +495,19 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 py-1">
-                        <div className="bg-[#0B0F14] p-2 rounded border border-white/[0.04]">
+                        <div className="bg-[#080808] p-2 rounded border border-white/[0.04]">
                           <span className="text-[10px] text-[#8B949E] block uppercase">Actual Water Lost</span>
                           <span className="font-mono font-bold text-[#F0F6FC] text-sm">
                             {t.sustainability.intervention_impact.actual_loss_liters.toFixed(1)} L
                           </span>
                         </div>
-                        <div className="bg-[#0B0F14] p-2 rounded border border-white/[0.04]">
+                        <div className="bg-[#080808] p-2 rounded border border-white/[0.04]">
                           <span className="text-[10px] text-[#8B949E] block uppercase font-medium">Estimated Water Saved</span>
                           <span className="font-mono font-bold text-[#F0F6FC] text-sm">
                             +{t.sustainability.intervention_impact.estimated_water_saved_liters.toFixed(1)} L
                           </span>
                         </div>
-                        <div className="bg-[#0B0F14] p-2 rounded border border-white/[0.04]">
+                        <div className="bg-[#080808] p-2 rounded border border-white/[0.04]">
                           <span className="text-[10px] text-[#8B949E] block uppercase font-medium">Estimated Avoided Cost</span>
                           <span className="font-mono font-bold text-[#F0F6FC] text-sm">
                             ₹{t.sustainability.intervention_impact.avoided_cost_inr.toFixed(2)}
@@ -577,7 +577,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
       {/* ── RESOLUTION NOTE MODAL DIALOG ────────────────────────────────────── */}
       {resolvingTicket && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F141D] rounded-md max-w-lg w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-[#101010] rounded-md max-w-lg w-full p-6 shadow-2xl space-y-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">

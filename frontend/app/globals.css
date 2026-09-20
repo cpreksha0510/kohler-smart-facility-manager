@@ -1,11 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --color-page: #080808;
+  --color-surface: #101010;
+}
+
 :root {
   /* Surfaces & Neutrals */
-  --bg-base: #0B0F14;
-  --bg-surface: #0F141D;
-  --bg-surface-elevated: #1B222C;
-  --bg-surface-hover: #222B38;
+  --bg-base: #080808;
+  --bg-surface: #101010;
+  --bg-surface-elevated: #161616;
+  --bg-surface-hover: #1c1c1c;
   
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
@@ -40,6 +45,21 @@
 
   /* Sustainability & Conservation Metrics */
   --eco-saved: #2EB88A;
+}
+
+/* Centralized background tokens enforcement across all views */
+.bg-page,
+.bg-\[\#080808\],
+.bg-\[\#0B0F14\],
+.bg-\[\#0D1117\] {
+  background-color: #080808 !important;
+}
+
+.bg-surface,
+.bg-\[\#101010\],
+.bg-\[\#0F141D\],
+.bg-\[\#141A22\] {
+  background-color: #101010 !important;
 }
 
 body {

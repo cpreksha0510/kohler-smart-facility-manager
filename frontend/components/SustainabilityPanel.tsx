@@ -39,13 +39,13 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
   if (loading || !summary) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-20 bg-[#0F141D] rounded-md" />
+        <div className="h-20 bg-[#101010] rounded-md" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-[#0F141D] rounded-md" />
+            <div key={i} className="h-28 bg-[#101010] rounded-md" />
           ))}
         </div>
-        <div className="h-48 bg-[#0F141D] rounded-md" />
+        <div className="h-48 bg-[#101010] rounded-md" />
       </div>
     );
   }
@@ -63,7 +63,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
   return (
     <div className="space-y-6">
       {/* 1. Dedicated Header Banner */}
-      <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
+      <div className="bg-[#101010] rounded-md p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-md bg-[#2EB88A]/15 border border-[#2EB88A]/30 text-[#2EB88A]">
@@ -92,7 +92,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
       {/* 2. Top-Level Metric Cards (Exactly 1 Main Number + 1 Short Supporting Line per Card) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card A: Water Waste Volume */}
-        <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
+        <div className="bg-[#101010] rounded-md p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Water Waste Volume
@@ -112,7 +112,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
         </div>
 
         {/* Card B: Estimated Water Saved (Counterfactual) */}
-        <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
+        <div className="bg-[#101010] rounded-md p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Estimated Water Saved
@@ -132,7 +132,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
         </div>
 
         {/* Card C: Unaddressed Risk (+24h) */}
-        <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
+        <div className="bg-[#101010] rounded-md p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Unaddressed Risk (+24h)
@@ -152,7 +152,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
         </div>
 
         {/* Card D: Primary Loss Hotspot */}
-        <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
+        <div className="bg-[#101010] rounded-md p-4.5 transition-all shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">
               Primary Loss Hotspot
@@ -175,7 +175,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
       </div>
 
       {/* 3. Zone Conservation Breakdown */}
-      <div className="bg-[#0F141D] rounded-md p-5 shadow-sm space-y-4">
+      <div className="bg-[#101010] rounded-md p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-white/[0.06]">
           <div>
             <h3 className="text-xs font-bold text-[#F0F6FC] uppercase tracking-wider">
@@ -200,7 +200,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
             return (
               <div
                 key={z.zone_id}
-                className="p-4 rounded-md bg-[#0B0F14] flex items-center justify-between"
+                className="p-4 rounded-md bg-[#080808] flex items-center justify-between"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -226,7 +226,7 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
       </div>
 
       {/* 4. Collapsible Conservation Methodology Accordion (Collapsed by Default) */}
-      <div className="bg-[#0F141D] rounded-md p-4.5 shadow-sm">
+      <div className="bg-[#101010] rounded-md p-4.5 shadow-sm">
         <button
           id="toggle-methodology-accordion"
           onClick={() => setIsMethodologyOpen(!isMethodologyOpen)}
@@ -254,13 +254,13 @@ export function SustainabilityPanel({ summary, loading }: SustainabilityPanelPro
               minus the actual volume lost before technician resolution.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-[11px] text-[#C9D1D9]">
-              <div className="bg-[#0B0F14] p-2.5 rounded-lg border border-white/[0.04]">
+              <div className="bg-[#080808] p-2.5 rounded-lg border border-white/[0.04]">
                 <span className="text-[#8B949E] block text-[10px] uppercase font-sans font-semibold mb-1">
                   Avoided Volume Formula
                 </span>
                 Max((Observed LPM × 1,440 min) − Actual Loss, 0)
               </div>
-              <div className="bg-[#0B0F14] p-2.5 rounded-lg border border-white/[0.04]">
+              <div className="bg-[#080808] p-2.5 rounded-lg border border-white/[0.04]">
                 <span className="text-[#8B949E] block text-[10px] uppercase font-sans font-semibold mb-1">
                   Utility Tariff Rate
                 </span>

@@ -147,7 +147,7 @@ export function TicketsTable({
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
 
   return (
-    <div className="bg-[#0F141D] rounded-md overflow-hidden shadow-sm">
+    <div className="bg-[#101010] rounded-md overflow-hidden shadow-sm">
       {/* Table Header & Filter Tabs */}
       <div className="px-5 py-4 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
@@ -160,7 +160,7 @@ export function TicketsTable({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08]">
+        <div className="flex items-center bg-[#080808] p-1 rounded-lg border border-white/[0.08]">
           <button
             onClick={() => setFilterTab("all")}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${

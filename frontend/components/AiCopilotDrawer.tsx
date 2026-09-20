@@ -115,9 +115,9 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
 
       {/* Slide-over Drawer Panel */}
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#0F141D] border-l border-white/10 shadow-2xl flex flex-col">
+        <div className="w-screen max-w-md bg-[#101010] border-l border-white/10 shadow-2xl flex flex-col">
           {/* Drawer Header */}
-          <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#10141A]/90">
+          <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#080808]">
             <div className="flex items-center gap-2.5">
               <div className="h-7 w-7 rounded-lg bg-[#D4A359]/15 border border-[#D4A359]/30 flex items-center justify-center text-[#D4A359]">
                 <Sparkles className="h-4 w-4" />
@@ -138,7 +138,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
           </div>
 
           {/* Quick Prompts */}
-          <div className="px-4 py-2.5 bg-[#0B0F14] border-b border-white/[0.06] overflow-x-auto flex gap-2 no-scrollbar">
+          <div className="px-4 py-2.5 bg-[#080808] border-b border-white/[0.06] overflow-x-auto flex gap-2 no-scrollbar">
             {quickPrompts.map((qp, idx) => (
               <button
                 key={idx}
@@ -200,13 +200,13 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
           </div>
 
           {/* Chat Input Bar */}
-          <div className="p-3 border-t border-white/[0.08] bg-[#10141A]">
+          <div className="p-3 border-t border-white/[0.08] bg-[#101010]">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend();
               }}
-              className="flex items-center gap-2 bg-[#0B0F14] border border-white/15 rounded-lg px-3 py-1.5 focus-within:border-[#D4A359] transition-all"
+              className="flex items-center gap-2 bg-[#080808] border border-white/15 rounded-lg px-3 py-1.5 focus-within:border-[#D4A359] transition-all"
             >
               <input
                 type="text"

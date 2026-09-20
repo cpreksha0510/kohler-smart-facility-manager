@@ -25,7 +25,7 @@ export function OccupancyHeatmap({ data, loading }: OccupancyHeatmapProps) {
 
   // Color interpolation for 0.0 to 1.0 occupancy
   const getCellColor = (val: number) => {
-    if (val <= 0.02) return "#0F141D";
+    if (val <= 0.02) return "#101010";
     if (val < 0.2) return "#182438";
     if (val < 0.4) return "#233959";
     if (val < 0.6) return "#305482";
@@ -34,7 +34,7 @@ export function OccupancyHeatmap({ data, loading }: OccupancyHeatmapProps) {
   };
 
   return (
-    <div className="bg-[#0F141D] rounded-md overflow-hidden shadow-sm transition-all">
+    <div className="bg-[#101010] rounded-md overflow-hidden shadow-sm transition-all">
       {/* Collapsible Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -118,7 +118,7 @@ export function OccupancyHeatmap({ data, loading }: OccupancyHeatmapProps) {
                 <div className="flex items-center gap-2">
                   <span>0% (Empty)</span>
                   <div className="flex gap-1 h-3 w-32 rounded overflow-hidden">
-                    <div className="flex-1 bg-[#0F141D]" />
+                    <div className="flex-1 bg-[#101010]" />
                     <div className="flex-1 bg-[#182438]" />
                     <div className="flex-1 bg-[#233959]" />
                     <div className="flex-1 bg-[#305482]" />
