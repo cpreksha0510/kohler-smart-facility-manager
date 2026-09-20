@@ -561,6 +561,12 @@ def run_detection() -> None:
         print(f"  [{d_str}] Digest generated ({d_count} Low/Med tickets):")
         print(f"       \"{digest}\"")
 
+    # Pass 6 -- Predictive Fixture Health (Section 1)
+    print("\nPass 6 -- Calculating Predictive Fixture Health (Section 1)...")
+    from src.fixture_health import compute_all_fixture_health
+    health_records = compute_all_fixture_health(str(DB_PATH))
+    print(f"  Calculated health records for {len(health_records)} fixtures.")
+
     # Scenario verification
     print("\n" + "-" * 70)
     print("SCENARIO VERIFICATION")

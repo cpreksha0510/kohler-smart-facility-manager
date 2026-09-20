@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Sliders, Layers, LayoutDashboard, Ticket, Leaf } from "lucide-react";
+import { Sparkles, Sliders, Layers, LayoutDashboard, Ticket, Leaf, Activity } from "lucide-react";
 
 interface HeaderProps {
-  activeTab: "dashboard" | "tickets" | "sustainability";
-  setActiveTab: (tab: "dashboard" | "tickets" | "sustainability") => void;
+  activeTab: "dashboard" | "tickets" | "sustainability" | "health";
+  setActiveTab: (tab: "dashboard" | "tickets" | "sustainability" | "health") => void;
   viewMode: "full" | "replay";
   setViewMode: (mode: "full" | "replay") => void;
   openCopilot: () => void;
@@ -88,6 +88,18 @@ export function Header({
             >
               <Leaf className={`h-3.5 w-3.5 ${activeTab === "sustainability" ? "text-[#2EB88A]" : "text-[#8B949E]"}`} />
               <span>Sustainability</span>
+            </button>
+            <button
+              id="nav-tab-health"
+              onClick={() => setActiveTab("health")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === "health"
+                  ? "bg-[#1B222C] text-white shadow-sm font-semibold border border-[#4D88C7]/30"
+                  : "text-[#8B949E] hover:text-white"
+              }`}
+            >
+              <Activity className={`h-3.5 w-3.5 ${activeTab === "health" ? "text-[#4D88C7]" : "text-[#8B949E]"}`} />
+              <span>Fixture Health</span>
             </button>
           </nav>
 

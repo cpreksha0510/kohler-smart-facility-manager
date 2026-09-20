@@ -84,6 +84,23 @@ def init_db(db_path: str) -> None:
                 created_at      TEXT NOT NULL
             )
         """)
+
+        # ── fixture_health (Section 1.5: Predictive Fixture Health) ──────────
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS fixture_health (
+                fixture_id          TEXT PRIMARY KEY,
+                health_score        REAL NOT NULL,
+                risk_score          REAL NOT NULL,
+                trend               TEXT NOT NULL,
+                anomaly_count       INTEGER NOT NULL DEFAULT 0,
+                slow_drip_count     INTEGER NOT NULL DEFAULT 0,
+                sensor_fault_count  INTEGER NOT NULL DEFAULT 0,
+                last_incident_at    TEXT,
+                calculated_at       TEXT NOT NULL,
+                recommendation      TEXT NOT NULL DEFAULT '',
+                risk_factors_json   TEXT NOT NULL DEFAULT '{}'
+            )
+        """)
     conn.close()
 
 
@@ -237,4 +254,62 @@ def update_ticket_status(
         updated = cursor.rowcount > 0
     conn.close()
     return updated
+
+
+# ── Fixture Health (Section 1.5) ──────────────────────────────────────────────
+
+def save_fixture_health_records(db_path: str, records: list[dict]) -> None:
+    """Bulk insert or replace fixture health records in SQLite."""
+    db_path = str(db_path)
+    conn = get_connection(db_path)
+    with conn:
+        for r in records:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO fixture_health (
+                    fixture_id, health_score, risk_score, trend,
+                    anomaly_count, slow_drip_count, sensor_fault_count,
+                    last_incident_at, calculated_at, recommendation,
+                    risk_factors_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    r["fixture_id"],
+                    r["health_score"],
+                    r["risk_score"],
+                    r["trend"],
+                    r.get("anomaly_count", 0),
+                    r.get("slow_drip_count", 0),
+                    r.get("sensor_fault_count", 0),
+                    str(r["last_incident_at"]) if r.get("last_incident_at") is not None and not pd.isna(r.get("last_incident_at")) else None,
+                    str(r["calculated_at"]),
+                    r.get("recommendation", ""),
+                    r.get("risk_factors_json", "{}"),
+                ),
+            )
+    conn.close()
+
+
+def get_fixture_health_records(db_path: str, fixture_id: str = None) -> list[dict]:
+    """Retrieve fixture health records. If fixture_id is provided, returns single record or empty."""
+    db_path = str(db_path)
+    if not Path(db_path).exists():
+        return []
+    conn = get_connection(db_path)
+    try:
+        if fixture_id:
+            rows = conn.execute(
+                "SELECT * FROM fixture_health WHERE fixture_id = ?",
+                (fixture_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM fixture_health ORDER BY risk_score DESC"
+            ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    finally:
+        conn.close()
+
+    return [dict(r) for r in rows]
 

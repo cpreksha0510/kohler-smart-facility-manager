@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { MetricCards } from "@/components/MetricCards";
 import { SustainabilityPanel } from "@/components/SustainabilityPanel";
+import { FixtureHealthView } from "@/components/FixtureHealthView";
 import { FlowRateChart } from "@/components/FlowRateChart";
 import { OccupancyHeatmap } from "@/components/OccupancyHeatmap";
 import { TicketsView } from "@/components/TicketsView";
@@ -16,10 +17,13 @@ import {
   DailyDigest,
   OccupancyHeatmapData,
   SustainabilitySummary,
+  FixtureHealthRecord,
+  FacilityHealthSummary,
+  FixtureHealthApiResponse,
 } from "@/components/types";
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "tickets" | "sustainability">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "tickets" | "sustainability" | "health">("dashboard");
   const [viewMode, setViewMode] = useState<"full" | "replay">("full");
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
@@ -33,6 +37,8 @@ export default function DashboardPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [digests, setDigests] = useState<Record<string, DailyDigest>>({});
   const [sustainability, setSustainability] = useState<SustainabilitySummary | null>(null);
+  const [fixtureHealth, setFixtureHealth] = useState<FixtureHealthRecord[]>([]);
+  const [healthSummary, setHealthSummary] = useState<FacilityHealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Replay Simulator State
@@ -43,7 +49,7 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [ovRes, ztRes, rdRes, hmRes, tkRes, dgRes, susRes] = await Promise.all([
+      const [ovRes, ztRes, rdRes, hmRes, tkRes, dgRes, susRes, fhRes] = await Promise.all([
         fetch("/api/overview"),
         fetch("/api/readings/zone-totals?downsample_mins=5"),
         fetch("/api/readings?downsample_mins=5"),
@@ -51,6 +57,7 @@ export default function DashboardPage() {
         fetch("/api/tickets"),
         fetch("/api/digests"),
         fetch("/api/sustainability/summary"),
+        fetch("/api/fixture-health"),
       ]);
 
       if (ovRes.ok) setMetrics(await ovRes.json());
@@ -60,6 +67,11 @@ export default function DashboardPage() {
       if (tkRes.ok) setTickets(await tkRes.json());
       if (dgRes.ok) setDigests(await dgRes.json());
       if (susRes.ok) setSustainability(await susRes.json());
+      if (fhRes.ok) {
+        const fhData: FixtureHealthApiResponse = await fhRes.json();
+        setFixtureHealth(fhData.fixtures || []);
+        setHealthSummary(fhData.summary || null);
+      }
     } catch (err) {
       console.error("Error fetching facility telemetry:", err);
     } finally {
@@ -189,6 +201,14 @@ export default function DashboardPage() {
 
         {activeTab === "sustainability" && (
           <SustainabilityPanel summary={sustainability} loading={loading} />
+        )}
+
+        {activeTab === "health" && (
+          <FixtureHealthView
+            records={fixtureHealth}
+            summary={healthSummary}
+            loading={loading}
+          />
         )}
 
         {activeTab === "dashboard" && (

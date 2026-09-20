@@ -135,3 +135,45 @@ export interface OccupancyHeatmapData {
   hours: number[];
   matrix: number[][];
 }
+
+export interface FixtureRiskFactors {
+  anomaly_frequency_score: number;
+  recurrence_score: number;
+  flow_drift_score: number;
+  slow_drip_score: number;
+  sensor_health_score: number;
+  unresolved_score: number;
+}
+
+export interface FixtureHealthRecord {
+  fixture_id: string;
+  zone_id: string;
+  fixture_type: string;
+  health_score: number;
+  risk_score: number;
+  status: "Healthy" | "Watch" | "Degrading" | "High Risk";
+  trend: "Deteriorating" | "Stable" | "Improving";
+  anomaly_count: number;
+  slow_drip_count: number;
+  sensor_fault_count: number;
+  last_incident_at?: string | null;
+  calculated_at: string;
+  recommendation: string;
+  risk_factors: FixtureRiskFactors;
+  tickets?: Ticket[];
+}
+
+export interface FacilityHealthSummary {
+  average_health_score: number;
+  healthy_count: number;
+  watch_count: number;
+  degrading_count: number;
+  high_risk_count: number;
+  deteriorating_count: number;
+  total_fixtures: number;
+}
+
+export interface FixtureHealthApiResponse {
+  summary: FacilityHealthSummary;
+  fixtures: FixtureHealthRecord[];
+}

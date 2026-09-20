@@ -28,12 +28,18 @@ from src.config import (
 from src.database import (
     get_connection, get_readings_df, get_tickets_df,
     get_daily_digests, update_ticket_status,
+    get_fixture_health_records,
 )
 from src.explainability import build_ticket_evidence
 from src.sustainability import (
     calculate_facility_sustainability_summary,
     calculate_incident_projection,
     calculate_intervention_impact,
+)
+from src.fixture_health import (
+    compute_all_fixture_health,
+    get_facility_health_summary,
+    map_health_label,
 )
 from src.llm import get_gemini_model, get_copilot_model
 
@@ -325,6 +331,65 @@ def get_sustainability_summary_endpoint():
     return calculate_facility_sustainability_summary(tickets)
 
 
+# ── Predictive Fixture Health (Section 1) ─────────────────────────────────────
+
+@app.get("/api/fixture-health")
+def get_fixture_health_endpoint():
+    """Return predictive health & risk scores for all fixtures (Section 1.6)."""
+    records = get_fixture_health_records(str(DB_PATH))
+    if not records:
+        records = compute_all_fixture_health(str(DB_PATH))
+    else:
+        # Parse risk_factors_json and enrich with zone/type if needed
+        fixture_meta = {f_id: (z_id, f_type) for z_id, f_id, f_type in FIXTURES}
+        for r in records:
+            if r["fixture_id"] in fixture_meta:
+                r["zone_id"], r["fixture_type"] = fixture_meta[r["fixture_id"]]
+            if "risk_factors_json" in r and isinstance(r["risk_factors_json"], str):
+                try:
+                    r["risk_factors"] = json.loads(r["risk_factors_json"])
+                except Exception:
+                    r["risk_factors"] = {}
+            r["status"] = map_health_label(float(r["health_score"]))
+
+    summary = get_facility_health_summary(records)
+    return {
+        "summary": summary,
+        "fixtures": records,
+    }
+
+
+@app.get("/api/fixture-health/{fixture_id}")
+def get_single_fixture_health_endpoint(fixture_id: str):
+    """Return comprehensive health intelligence for a specific fixture."""
+    records = get_fixture_health_records(str(DB_PATH), fixture_id=fixture_id)
+    if not records:
+        known = {f_id for _, f_id, _ in FIXTURES}
+        if fixture_id not in known:
+            raise HTTPException(status_code=404, detail=f"Fixture '{fixture_id}' not found.")
+        all_recs = compute_all_fixture_health(str(DB_PATH))
+        records = [r for r in all_recs if r["fixture_id"] == fixture_id]
+
+    if not records:
+        raise HTTPException(status_code=404, detail=f"Health record for '{fixture_id}' not found.")
+
+    r = records[0]
+    fixture_meta = {f_id: (z_id, f_type) for z_id, f_id, f_type in FIXTURES}
+    if fixture_id in fixture_meta:
+        r["zone_id"], r["fixture_type"] = fixture_meta[fixture_id]
+    if "risk_factors_json" in r and isinstance(r["risk_factors_json"], str):
+        try:
+            r["risk_factors"] = json.loads(r["risk_factors_json"])
+        except Exception:
+            r["risk_factors"] = {}
+    r["status"] = map_health_label(float(r["health_score"]))
+
+    # Add associated tickets
+    tickets = get_tickets()
+    r["tickets"] = [t for t in tickets if t.get("fixture_id") == fixture_id]
+    return r
+
+
 # ── Daily Digests ─────────────────────────────────────────────────────────────
 
 @app.get("/api/digests")
@@ -343,6 +408,11 @@ def chat_with_copilot(req: ChatRequest):
     """
     tickets = get_tickets()
     sust = calculate_facility_sustainability_summary(tickets)
+    health_records = get_fixture_health_records(str(DB_PATH))
+    if not health_records:
+        health_records = compute_all_fixture_health(str(DB_PATH))
+    health_summary = get_facility_health_summary(health_records)
+    degrading_fixtures = [r["fixture_id"] for r in health_records if r.get("health_score", 100) < 60]
 
     open_tickets = [t for t in tickets if str(t.get("status", "")).lower() != "resolved"]
     open_tickets.sort(key=lambda x: float(x.get("estimated_water_loss_liters") or 0.0), reverse=True)
@@ -369,6 +439,11 @@ Sustainability & Conservation Overview:
 - Highest Waste Fixture: {hw_fix.get('fixture_id', 'None')} in {hw_fix.get('zone_id', 'None')} ({hw_fix.get('water_waste_liters', 0.0):.1f} Litres lost, ₹{hw_fix.get('cost_impact_inr', 0.0):.2f})
 - Highest Waste Zone: {hw_zone.get('zone_id', 'None')} ({hw_zone.get('water_waste_liters', 0.0):.1f} Litres lost, ₹{hw_zone.get('cost_impact_inr', 0.0):.2f})
 - Projected 24h Unresolved Water Loss: {sust.get('projected_unresolved_loss_24h_liters', 0.0):.1f} Litres
+
+Predictive Fixture Health Intelligence:
+- Facility Health Average: {health_summary.get('average_health_score', 100.0)}/100
+- Fixtures at Risk / Degrading: {health_summary.get('high_risk_count', 0) + health_summary.get('degrading_count', 0)} ({', '.join(degrading_fixtures) if degrading_fixtures else 'None'})
+- Deteriorating Trend Fixtures: {health_summary.get('deteriorating_count', 0)}
 
 Active Open Tickets (ranked by water loss impact):
 {chr(10).join(open_summary) if open_summary else "No active open tickets."}
