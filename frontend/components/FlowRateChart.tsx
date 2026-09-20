@@ -19,6 +19,8 @@ interface FlowRateChartProps {
   loading: boolean;
   isReplay?: boolean;
   replayCutoffDate?: Date;
+  replayHours?: number;
+  onJumpReplayHours?: (hours: number) => void;
 }
 
 const ZONE_COLORS: Record<string, string> = {
@@ -68,15 +70,45 @@ const isTimestampInRange = (tsStr: string, range: string) => {
   return true;
 };
 
+const getHoursFromTimestamp = (tsStr: string): number => {
+  const norm = tsStr.replace(" ", "T");
+  const d = new Date(norm);
+  const start = new Date("2024-01-15T00:00:00");
+  return (d.getTime() - start.getTime()) / (3600 * 1000);
+};
+
+const formatWindowRange = (startHour: number, endHour: number): string => {
+  const startD = new Date(new Date("2024-01-15T00:00:00").getTime() + startHour * 3600 * 1000);
+  const endD = new Date(new Date("2024-01-15T00:00:00").getTime() + endHour * 3600 * 1000);
+
+  const formatTime = (d: Date) => {
+    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  };
+  const formatDate = (d: Date) => {
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const startDayStr = formatDate(startD);
+  const endDayStr = formatDate(endD);
+
+  if (startDayStr === endDayStr) {
+    return `${startDayStr}, ${formatTime(startD)} → ${formatTime(endD)}`;
+  }
+  return `${startDayStr} ${formatTime(startD)} → ${endDayStr} ${formatTime(endD)}`;
+};
+
 export function FlowRateChart({
   readings,
   zoneTotals,
   loading,
   isReplay = false,
   replayCutoffDate,
+  replayHours = 0,
+  onJumpReplayHours,
 }: FlowRateChartProps) {
   const [chartMode, setChartMode] = useState<"zone_total" | "per_fixture">("zone_total");
   const [dateRange, setDateRange] = useState<string>("all");
+  const [windowHours, setWindowHours] = useState<number>(4);
   const [selectedZones, setSelectedZones] = useState<string[]>([
     "T2_Restroom_A",
     "T2_Restroom_B",
@@ -95,14 +127,51 @@ export function FlowRateChart({
     });
   };
 
+  // Compute rolling window bounds for Replay mode
+  const windowBounds = useMemo(() => {
+    if (!isReplay) return null;
+    const currentDay = Math.min(7, Math.floor(replayHours / 24) + 1);
+    const dayStartHour = (currentDay - 1) * 24;
+    const hoursIntoDay = replayHours - dayStartHour;
+
+    let startHour: number;
+    let endHour: number;
+
+    if (hoursIntoDay < windowHours) {
+      startHour = dayStartHour;
+      endHour = dayStartHour + windowHours;
+    } else {
+      endHour = Math.min(168, replayHours);
+      startHour = Math.max(0, endHour - windowHours);
+    }
+    return { startHour, endHour };
+  }, [isReplay, replayHours, windowHours]);
+
   // Transform data for Recharts (keyed by timestamp)
   const chartData = useMemo(() => {
     if (chartMode === "zone_total") {
-      // Group zoneTotals into { timestamp: "...", "T2_Restroom_A": 3.4, ... }
       const timeMap = new Map<string, any>();
       for (const item of zoneTotals) {
         if (!selectedZones.includes(item.zone_id)) continue;
         if (!isReplay && !isTimestampInRange(item.timestamp_str, dateRange)) continue;
+
+        if (isReplay && windowBounds) {
+          const itemHour = getHoursFromTimestamp(item.timestamp_str);
+          if (itemHour < windowBounds.startHour - 0.001 || itemHour > windowBounds.endHour + 0.001) {
+            continue;
+          }
+          if (!timeMap.has(item.timestamp_str)) {
+            timeMap.set(item.timestamp_str, { timestamp: item.timestamp_str });
+          }
+          const row = timeMap.get(item.timestamp_str);
+          if (itemHour > replayHours + 0.001) {
+            row[item.zone_id] = null;
+          } else {
+            row[item.zone_id] = Number(item.flow_rate_lpm.toFixed(2));
+          }
+          continue;
+        }
+
         if (!timeMap.has(item.timestamp_str)) {
           timeMap.set(item.timestamp_str, { timestamp: item.timestamp_str });
         }
@@ -120,7 +189,25 @@ export function FlowRateChart({
       for (const item of readings) {
         if (!selectedZones.includes(item.zone_id)) continue;
         if (!isReplay && !isTimestampInRange(item.timestamp_str, dateRange)) continue;
+
         const fid = item.fixture_id || "Unknown";
+        if (isReplay && windowBounds) {
+          const itemHour = getHoursFromTimestamp(item.timestamp_str);
+          if (itemHour < windowBounds.startHour - 0.001 || itemHour > windowBounds.endHour + 0.001) {
+            continue;
+          }
+          if (!timeMap.has(item.timestamp_str)) {
+            timeMap.set(item.timestamp_str, { timestamp: item.timestamp_str });
+          }
+          const row = timeMap.get(item.timestamp_str);
+          if (itemHour > replayHours + 0.001) {
+            row[fid] = null;
+          } else {
+            row[fid] = Number(item.flow_rate_lpm.toFixed(2));
+          }
+          continue;
+        }
+
         if (!timeMap.has(item.timestamp_str)) {
           timeMap.set(item.timestamp_str, { timestamp: item.timestamp_str });
         }
@@ -133,7 +220,24 @@ export function FlowRateChart({
       }
       return Array.from(timeMap.values());
     }
-  }, [chartMode, zoneTotals, readings, selectedZones, isReplay, replayCutoffDate, dateRange]);
+  }, [chartMode, zoneTotals, readings, selectedZones, isReplay, replayCutoffDate, dateRange, windowBounds, replayHours]);
+
+  // Compute dynamic Y-Axis max auto-scaled to visible window data
+  const yAxisMax = useMemo(() => {
+    if (!isReplay) return "auto";
+    let max = 0;
+    for (const row of chartData) {
+      for (const [k, v] of Object.entries(row)) {
+        if (k !== "timestamp" && typeof v === "number" && !isNaN(v)) {
+          if (v > max) max = v;
+        }
+      }
+    }
+    if (max <= 0.5) return 2.0;
+    if (max <= 2.0) return 3.0;
+    if (max <= 5.0) return Math.ceil(max + 1);
+    return Math.ceil(max * 1.15);
+  }, [isReplay, chartData]);
 
   // Fixtures list if in per_fixture mode
   const fixtureKeys = useMemo(() => {
@@ -172,20 +276,21 @@ export function FlowRateChart({
             </h2>
             <span className="text-[11px] text-[#8B949E]">
               {isReplay
-                ? "Replay Telemetry (Full 7-day timeline)"
+                ? `Rolling Replay Window (${windowHours}h)`
                 : chartMode === "zone_total"
                 ? "4 Zones Aggregated"
                 : "Per-Fixture Breakdown"}
             </span>
             {isReplay && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#D4A359]/15 text-[#D4A359] border border-[#D4A359]/30">
-                Replay Scrubber
+              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#2EB88A]/15 text-[#2EB88A] border border-[#2EB88A]/30 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2EB88A] animate-pulse" />
+                Rolling Window
               </span>
             )}
           </div>
           <p className="text-xs text-[#8B949E] mt-0.5">
             {isReplay
-              ? "Full 7-Day simulated timeline — scrub or press Play to stream flow telemetry across the complete canvas"
+              ? `Zoomed ${windowHours}-hour rolling telemetry stream — auto-scrolling with current replay position`
               : "7-Day continuous sensor stream downsampled at 5-minute intervals"}
           </p>
         </div>
@@ -217,12 +322,12 @@ export function FlowRateChart({
         </div>
       </div>
 
-      {/* Date Range Selector (Full Dataset View only) */}
-      {!isReplay && (
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-2.5 rounded-md bg-[#080B0F]">
+      {/* Date Range Selector (Full Dataset View) or Day Quick Jump (Replay Mode) */}
+      {!isReplay ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-2.5 rounded-md bg-[#080808]">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-medium text-[#8B949E] uppercase tracking-wider">Date Range:</span>
-            <div className="flex items-center bg-[#10151E] p-0.5 rounded-md">
+            <div className="flex items-center bg-[#101010] p-0.5 rounded-md">
               {[
                 { id: "all", label: "Full 7 Days" },
                 { id: "last24h", label: "Last 24 Hours" },
@@ -244,7 +349,7 @@ export function FlowRateChart({
 
             <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
 
-            <div className="flex items-center bg-[#10151E] p-0.5 rounded-md overflow-x-auto">
+            <div className="flex items-center bg-[#101010] p-0.5 rounded-md overflow-x-auto">
               <span className="text-[10px] text-[#8B949E] px-2 font-medium">Day:</span>
               {[1, 2, 3, 4, 5, 6, 7].map((d) => {
                 const id = `day${d}`;
@@ -273,7 +378,70 @@ export function FlowRateChart({
             </strong> ({chartData.length} pts)
           </span>
         </div>
-      )}
+      ) : onJumpReplayHours ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-2.5 rounded-md bg-[#080808]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-medium text-[#8B949E] uppercase tracking-wider">Replay Jump:</span>
+            <div className="flex items-center bg-[#101010] p-0.5 rounded-md overflow-x-auto">
+              <span className="text-[10px] text-[#8B949E] px-2 font-medium">Day:</span>
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => {
+                const dayStartHour = (d - 1) * 24;
+                const dateLabel = `Jan ${14 + d}`;
+                const activeDay = Math.min(7, Math.floor((replayHours || 0) / 24) + 1);
+                const isActive = activeDay === d;
+                return (
+                  <button
+                    key={d}
+                    id={`chart-replay-jump-day-${d}`}
+                    onClick={() => onJumpReplayHours(dayStartHour)}
+                    title={`Jump replay to ${dateLabel} 00:00 (Day ${d})`}
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+                      isActive
+                        ? "bg-[#1B222C] text-[#5B8DEF] font-bold border border-[#5B8DEF]/30 shadow-sm"
+                        : "text-[#8B949E] hover:text-white"
+                    }`}
+                  >
+                    D{d} <span className="text-[9px] opacity-70">({14 + d}th)</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
+
+            {/* Rolling Window Size Selector */}
+            <div className="flex items-center bg-[#101010] p-0.5 rounded-md">
+              <span className="text-[10px] text-[#8B949E] px-2 font-medium">Window:</span>
+              {[2, 4, 6].map((w) => (
+                <button
+                  key={w}
+                  id={`btn-window-size-${w}h`}
+                  onClick={() => setWindowHours(w)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+                    windowHours === w
+                      ? "bg-[#1B222C] text-[#D4A359] font-bold border border-[#D4A359]/30 shadow-sm"
+                      : "text-[#8B949E] hover:text-white"
+                  }`}
+                >
+                  {w}h
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-[11px] text-[#8B949E]">
+            {windowBounds && (
+              <span>
+                Window: <strong className="text-white font-mono">{formatWindowRange(windowBounds.startHour, windowBounds.endHour)}</strong>
+              </span>
+            )}
+            <span className="text-white/20">|</span>
+            <span>
+              Y-Peak: <strong className="text-[#5B8DEF] font-mono">{typeof yAxisMax === "number" ? yAxisMax.toFixed(1) : yAxisMax} L/m</strong>
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {/* Zone selection filter chips */}
       <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-white/[0.06]">
@@ -315,31 +483,39 @@ export function FlowRateChart({
                 dataKey="timestamp"
                 tick={{ fill: "#8B949E", fontSize: 10 }}
                 tickFormatter={(val) => {
-                  // val: "2024-01-15 04:00" -> "Jan 15 04:00"
                   const parts = val.split(" ");
                   if (parts.length === 2) {
+                    if (isReplay) {
+                      const time = parts[1];
+                      if (time === "00:00" || time === "00:05") {
+                        const dateParts = parts[0].split("-");
+                        return `${dateParts[1]}/${dateParts[2]} ${time}`;
+                      }
+                      return time;
+                    }
                     const dateParts = parts[0].split("-");
                     return `${dateParts[1]}/${dateParts[2]} ${parts[1]}`;
                   }
                   return val;
                 }}
                 stroke="rgba(255,255,255,0.1)"
-                minTickGap={40}
+                minTickGap={isReplay ? 25 : 40}
               />
               <YAxis
                 tick={{ fill: "#8B949E", fontSize: 10 }}
                 stroke="rgba(255,255,255,0.1)"
                 unit=" L/m"
+                domain={isReplay ? [0, yAxisMax] : [0, "auto"]}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#161B22",
+                  backgroundColor: "#101010",
                   borderColor: "rgba(255,255,255,0.15)",
-                  borderRadius: "8px",
+                  borderRadius: "6px",
                   fontSize: "11px",
                   color: "#F0F6FC",
                 }}
-                labelStyle={{ color: "#C5A059", fontWeight: 600, marginBottom: "4px" }}
+                labelStyle={{ color: "#D4A359", fontWeight: 600, marginBottom: "4px" }}
               />
               {chartMode === "zone_total" ? (
                 selectedZones.map((zid) => (

@@ -65,8 +65,9 @@ export function ReplayScrubber({
     <div className="bg-[#101010] rounded-md p-5 shadow-lg">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
         {/* Controls: Play, Reset, Speed */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
+            id="btn-replay-play"
             onClick={onTogglePlay}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-[#D4A359] text-black hover:bg-[#D4A359]/90 shadow-md transition-all"
           >
@@ -75,6 +76,7 @@ export function ReplayScrubber({
           </button>
 
           <button
+            id="btn-replay-reset"
             onClick={onReset}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-[#080808] hover:bg-white/10 text-[#8B949E] hover:text-[#F0F6FC] border border-white/10 transition-all"
           >
@@ -130,14 +132,14 @@ export function ReplayScrubber({
         <div className="flex justify-between text-[10px] text-[#8B949E] font-mono">
           {simDurationHours >= 168 ? (
             <>
-              <span>0h (D1)</span>
-              <span>24h (D2)</span>
-              <span>48h (D3)</span>
-              <span>72h (D4)</span>
-              <span>96h (D5)</span>
-              <span>120h (D6)</span>
-              <span>144h (D7)</span>
-              <span>168h</span>
+              <button onClick={() => onChangeHours(0)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">0h (D1)</button>
+              <button onClick={() => onChangeHours(24)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">24h (D2)</button>
+              <button onClick={() => onChangeHours(48)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">48h (D3)</button>
+              <button onClick={() => onChangeHours(72)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">72h (D4)</button>
+              <button onClick={() => onChangeHours(96)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">96h (D5)</button>
+              <button onClick={() => onChangeHours(120)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">120h (D6)</button>
+              <button onClick={() => onChangeHours(144)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">144h (D7)</button>
+              <button onClick={() => onChangeHours(168)} className="hover:text-[#5B8DEF] transition-colors focus:outline-none">168h</button>
             </>
           ) : (
             <>

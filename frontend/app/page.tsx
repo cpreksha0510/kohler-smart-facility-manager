@@ -224,7 +224,10 @@ export default function DashboardPage() {
 
         {activeTab === "dashboard" && (
           <div className="space-y-8">
-            {/* Replay Scrubber Banner (if replay mode) */}
+            {/* 1. Top-Level Metric Cards (4 cards) */}
+            <MetricCards metrics={activeMetrics} healthSummary={healthSummary} loading={loading} />
+
+            {/* Replay Scrubber Banner (if replay mode, directly above Flow Rate Telemetry Chart) */}
             {viewMode === "replay" && (
               <ReplayScrubber
                 simStart={metrics?.sim_start || "2024-01-15T00:00:00"}
@@ -240,9 +243,6 @@ export default function DashboardPage() {
               />
             )}
 
-            {/* 1. Top-Level Metric Cards (4 cards) */}
-            <MetricCards metrics={activeMetrics} healthSummary={healthSummary} loading={loading} />
-
             {/* 2. Flow Rate Telemetry Chart (Recharts) */}
             <FlowRateChart
               readings={readings}
@@ -250,6 +250,8 @@ export default function DashboardPage() {
               loading={loading}
               isReplay={viewMode === "replay"}
               replayCutoffDate={replayCutoffDate}
+              replayHours={replayHours}
+              onJumpReplayHours={setReplayHours}
             />
 
             {/* 3. Occupancy Heatmap (17 fixtures x 24h) */}

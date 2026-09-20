@@ -1340,6 +1340,144 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 
 **Files changed:** `frontend/components/Header.tsx`, `prompts_log.md`.
 
+---
+
+### Prompt 45 — Replay Demo Quick-Jump Day Selector (D1–D7)
+**Date:** 2026-09-20  
+**Prompt given:**
+> Add the same day selector (D1-D7, matching what's already on Full Dataset view) to Replay Demo mode as well. When a specific day is selected, Replay should jump/scrub directly to the start of that day's data rather than always starting from Day 1 and requiring full playback through to reach it. Keep the existing Play/Pause and scrubber controls working alongside this — the day selector should just provide a quick-jump, not replace manual scrubbing.
+> 
+> Show me a screenshot of Replay Demo with the day selector added, and confirm selecting a day actually jumps the replay position correctly.
+
+**What was built:**
+- **Quick-Jump Day Selector (D1–D7) in `ReplayScrubber.tsx`:**
+  - Added a dedicated Day Quick Jump bar `[Day: D1 (15th) ... D7 (21th)]` alongside `Play Simulation`, `Reset`, and `Speed` controls in `frontend/components/ReplayScrubber.tsx`.
+  - Clicking any day button immediately jumps `currentHours` directly to the start hour of that day (`(d - 1) * 24` hours).
+  - The active day button dynamically highlights in blue (`bg-[#1B222C] text-[#5B8DEF] border-[#5B8DEF]/30`) matching the day of the current simulation position, updating seamlessly during playback and manual scrubbing.
+  - Made the scrubber track timeline tick marks (`0h (D1)`, `24h (D2)`, `48h (D3)`, etc.) clickable quick jumps as well.
+- **Synchronized Replay Day Selector on `FlowRateChart.tsx`:**
+  - Updated `FlowRateChart` to display the identical Day selector toolbar when in Replay Demo mode, keeping both control surfaces perfectly in sync with the replay cutoff timeline.
+  - Aligned background container tokens to `#080808` and `#101010`.
+- **Global Replay State Wiring in `frontend/app/page.tsx`:**
+  - Passed `replayHours` and `onJumpReplayHours={setReplayHours}` down to `FlowRateChart`.
+  - Verified jumping to a day updates the simulated clock, scrubber slider position, scaled sensor metrics, active tickets queue, and telemetry stream on the canvas simultaneously.
+- **Verification:**
+  - TypeScript validated cleanly with 0 errors (`npx tsc --noEmit`).
+  - Browser tests verified:
+    1. Day 1 initial position: `Mon, Jan 15, 00:00 (0.0h / 0%)` with D1 highlighted.
+    2. Clicked `D4 (18th)`: position instantly jumped to `Thu, Jan 18, 00:00 (72.0h / 43%)`, slider positioned at 72h, and D4 highlighted.
+    3. Clicked `Play Simulation`: playback streamed smoothly from Day 4 onward across Day 5, 6, and 7.
+  - Screenshots captured: `replay_day1_initial_1789915245325.png`, `replay_day4_jumped_1789915275516.png`, and `replay_playback_paused_1789915389886.png`.
+
+**Files changed:** `frontend/components/ReplayScrubber.tsx`, `frontend/components/FlowRateChart.tsx`, `frontend/app/page.tsx`, `prompts_log.md`.
+
+---
+
+### Prompt 46 — Replay Demo: Rolling Telemetry Window & Dynamic Y-Axis Auto-Scale
+**Date:** 2026-09-20  
+**Prompt given:**
+> Change Replay Demo's chart behavior from showing the full 7-day timeline with a moving playhead, to a ROLLING WINDOW view instead.
+> 
+> Specifically:
+> 1. At any point during replay, only show a recent window of data — e.g., the last 3-4 hours leading up to the current replay position — not the entire 7-day span.
+> 2. As replay plays forward, the window should scroll forward with it (the x-axis range continuously shifts to stay centered on/ending at the current replay timestamp), so the chart always stays readable and zoomed-in rather than showing a dense, unreadable full-week view.
+> 3. When a specific Day is selected via the "REPLAY JUMP" selector, the window should jump to start at the beginning of that day, then continue rolling forward from there as replay plays.
+> 4. When paused, the window should stay fixed at wherever it currently is, not jump back to showing the full range.
+> 5. Keep the y-axis scale reasonable for a 3-4 hour window (it'll naturally look different from the full-dataset view's scale) — auto-scale to the visible window's data, not the full dataset's max.
+> 6. The manual scrubber (if it still exists) should let me drag to any point and have the window jump/re-center there accordingly.
+> 
+> Recommend the exact window size (I suggested 3-4 hours, but suggest what reads best given our L/min scale and spike patterns) before implementing, then show me a screenshot of the rolling window in action mid-playback.
+
+**What was built:**
+- **Recommended Window Size:** **4 Hours** (48 telemetry points at 5-minute sampling).
+  - Provides ~20px width per data point across the canvas.
+  - Accommodates 15–30 minute usage spikes as smooth, distinct curves rather than needle lines, while preserving 1–2 hours of baseline context before and after slow drips and sustained valve leaks.
+  - Added an interactive window size switcher `[2h] [4h] [6h]` (defaulting to 4h) in the chart toolbar for operator flexibility.
+- **Dynamic Rolling Window Engine (`FlowRateChart.tsx`):**
+  - **Auto-Scrolling Horizon:** When `hoursIntoDay >= windowHours`, the window end anchors to `replayHours` and start to `replayHours - windowHours`, scrolling forward tick-by-tick with the active playhead at the right edge.
+  - **Day Jump Anchor:** When jumping to any day via `D1–D7` or the scrubber ticks, the window anchors directly to the beginning of that day `[dayStartHour, dayStartHour + windowHours]`, allowing the initial hours of the day to draw across the canvas before continuous scrolling kicks in.
+  - **Scrubber & Pause Persistence:** Scrubbing immediately re-centers the 4-hour window on the chosen timestamp; pausing freezes the window exactly in place.
+- **Dynamic Y-Axis Auto-Scaling:**
+  - Evaluates maximum flow rate across visible non-null points in the active window.
+  - Clamps quiet nocturnal hours (slow drip) to a tight 0–2 or 0–3 L/min scale so micro-leaks are clearly magnified.
+  - Expands to 0–10 or 0–14 L/min during daytime peak surges with 15% headroom.
+- **Verification:**
+  - TypeScript checked cleanly with 0 errors (`npx tsc --noEmit`).
+  - Tested in browser during mid-playback at 4x speed:
+    - Position reached `Fri, Jan 19, 20:00 (Day 5)`: window smoothly displayed `16:00 → 20:00` with auto-scaled Y-axis peaking at `10.0 L/m`.
+    - Spanned through Day 7: captured detailed view showing Staff WC sustained leak at ~3 L/m alongside Restroom A & B usage spikes.
+  - Captured screenshots: `replay_rolling_window_mid_playback_1789916339385.png` and `replay_rolling_window_1789916476715.png`.
+
+**Files changed:** `frontend/components/FlowRateChart.tsx`, `prompts_log.md`.
+
+---
+
+### Prompt 47 — Replay Demo: Unified Single Day Selector Under "REPLAY JUMP"
+**Date:** 2026-09-20  
+**Prompt given:**
+> There are now two redundant Day selectors in Replay Demo — one near the top (next to Play/Reset/Speed controls) and one lower down labeled "REPLAY JUMP" (next to the rolling window chart and Window size options).
+> 
+> Please remove the top Day selector entirely, and keep only the "REPLAY JUMP" Day selector near the chart. Make sure the remaining one still correctly controls both the main playback position (Play/Pause/Speed/Reset) AND the rolling window chart's position — since previously these may have been wired to two separate selectors, confirm they're now unified under the single remaining control.
+> 
+> Show me a screenshot confirming only one Day selector remains and that it correctly drives both the playback controls and the chart.
+
+**What was built:**
+- **Eliminated Top Duplicate Day Selector (`ReplayScrubber.tsx`):**
+  - Removed the `[Day: D1 (15th) ... D7 (21th)]` button group from the top `ReplayScrubber` container.
+  - The top control bar now cleanly retains only `Play Simulation`, `Reset (00:00)`, and `Speed: 0.5x 1x 2x 4x 8x` pills alongside the `Simulated Replay Clock`.
+- **Preserved Unified Single "REPLAY JUMP" Selector (`FlowRateChart.tsx`):**
+  - Retained the lower `REPLAY JUMP: Day: [D1 (15th) ... D7 (21th)]` toolbar positioned alongside the `Window: [2h] [4h] [6h]` options above the rolling telemetry chart.
+  - Wired via `onJumpReplayHours={setReplayHours}` in `frontend/app/page.tsx` as the single source of truth driving:
+    1. Top Scrubber clock timestamp and slider position (0–168h),
+    2. Dynamic KPI metrics and active tickets calculation,
+    3. Rolling window start anchor `[dayStartHour, dayStartHour + windowHours]`,
+    4. Auto-scaled Y-axis and streaming flow curves.
+- **Verification:**
+  - TypeScript passed cleanly with 0 errors (`npx tsc --noEmit`).
+  - Tested in browser:
+    - Clicked `D3 (17th)` in REPLAY JUMP toolbar: top clock instantly updated to `Wed, Jan 17`, slider jumped to `48h` (29%), and rolling window initialized to `Jan 17, 00:00 → 04:00`.
+    - Pressed `Play Simulation` then `Pause`: both top clock and rolling window scrolled in synchronization.
+  - Captured verification screenshot: `replay_single_day_selector_1789917350611.png`.
+
+**Files changed:** `frontend/components/ReplayScrubber.tsx`, `prompts_log.md`.
+
+---
+
+### Prompt 48 — Replay Demo: Reposition Playback Controls Below Metric Cards
+**Date:** 2026-09-20  
+**Prompt given:**
+> Move the playback controls section — "Play Simulation" / "Pause", "Reset (00:00)", "Speed" (0.5x/1x/2x/4x/8x), the Day selector row, the timeline scrubber (0h-168h), and the "SIMULATED REPLAY CLOCK" display — from its current position ABOVE the 4 metric cards (Sensor Readings, Flagged Tickets, Facility Health Index, Estimated Water Loss), to BELOW those 4 cards instead, positioned directly above the "FLOW RATE TELEMETRY" chart section.
+> 
+> So the new order top to bottom on the Replay Demo view should be:
+> 1. Header
+> 2. The 4 metric cards (unchanged)
+> 3. Playback controls (moved here — Play/Pause, Reset, Speed, Day selector, timeline scrubber, Simulated Replay Clock)
+> 4. Flow Rate Telemetry chart section (Rolling Window, Replay Jump day selector, Window size, Filter Zones, chart itself)
+> 
+> This puts the playback controls immediately adjacent to the chart they control, rather than separated by the metric cards.
+> 
+> Show me a screenshot of the updated layout.
+
+**What was built:**
+- **Reordered Component Hierarchy in `frontend/app/page.tsx`:**
+  - Repositioned `<ReplayScrubber ... />` from above `<MetricCards ... />` to directly below it, placing it immediately adjacent to `<FlowRateChart ... />`.
+  - Established a clear, functional top-to-bottom layout hierarchy:
+    1. **Header:** Title, subtitle, navigation tabs, view mode toggle (Full Dataset / Replay), AI Copilot trigger.
+    2. **Metric Cards:** The 4 top-level KPIs (Sensor Readings, Flagged Tickets, Facility Health Index, Estimated Water Loss) positioned consistently at the top across all modes.
+    3. **Playback Controls (`ReplayScrubber`):** Play/Pause, Reset (00:00), Speed toggles (0.5x, 1x, 2x, 4x, 8x), Timeline Scrubber (0h–168h), and Simulated Replay Clock.
+    4. **Flow Rate Telemetry Chart (`FlowRateChart`):** Rolling Window header, REPLAY JUMP day selector, Window size (2h/4h/6h), Zone toggle filters, and real-time streaming Recharts canvas.
+- **Verification:**
+  - TypeScript checked cleanly with 0 errors (`npx tsc --noEmit`).
+  - Verified live layout in browser:
+    - Confirmed playback controls are directly above the telemetry chart.
+    - Verified scrubbing and play/pause controls dynamically roll the chart telemetry and update top-level metrics in real time without layout shift.
+  - Captured verification screenshot: `replay_updated_layout_1789917794867.png`.
+
+**Files changed:** `frontend/app/page.tsx`, `prompts_log.md`.
+
+
+
+
 
 
 
