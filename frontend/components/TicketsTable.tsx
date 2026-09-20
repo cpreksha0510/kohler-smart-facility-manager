@@ -147,7 +147,7 @@ export function TicketsTable({
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
 
   return (
-    <div className="bg-[#141A22] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-[#0F141D] rounded-md overflow-hidden shadow-sm">
       {/* Table Header & Filter Tabs */}
       <div className="px-5 py-4 border-b border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>

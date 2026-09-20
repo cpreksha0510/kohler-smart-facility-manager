@@ -35,6 +35,39 @@ const ZONE_LABELS: Record<string, string> = {
   T2_Staff_WC: "Staff WC",
 };
 
+const DATE_PRESETS: { id: string; label: string; shortLabel: string }[] = [
+  { id: "all", label: "Full 7 Days", shortLabel: "All 7D" },
+  { id: "last24h", label: "Last 24 Hours", shortLabel: "Last 24h" },
+  { id: "last3d", label: "Last 3 Days", shortLabel: "Last 3d" },
+  { id: "day1", label: "Day 1 (Jan 15)", shortLabel: "Day 1" },
+  { id: "day2", label: "Day 2 (Jan 16)", shortLabel: "Day 2" },
+  { id: "day3", label: "Day 3 (Jan 17)", shortLabel: "Day 3" },
+  { id: "day4", label: "Day 4 (Jan 18)", shortLabel: "Day 4" },
+  { id: "day5", label: "Day 5 (Jan 19)", shortLabel: "Day 5" },
+  { id: "day6", label: "Day 6 (Jan 20)", shortLabel: "Day 6" },
+  { id: "day7", label: "Day 7 (Jan 21)", shortLabel: "Day 7" },
+];
+
+const isTimestampInRange = (tsStr: string, range: string) => {
+  if (range === "all") return true;
+  if (range === "last24h") return tsStr.startsWith("2024-01-21");
+  if (range === "last3d") {
+    return (
+      tsStr.startsWith("2024-01-19") ||
+      tsStr.startsWith("2024-01-20") ||
+      tsStr.startsWith("2024-01-21")
+    );
+  }
+  if (range === "day1") return tsStr.startsWith("2024-01-15");
+  if (range === "day2") return tsStr.startsWith("2024-01-16");
+  if (range === "day3") return tsStr.startsWith("2024-01-17");
+  if (range === "day4") return tsStr.startsWith("2024-01-18");
+  if (range === "day5") return tsStr.startsWith("2024-01-19");
+  if (range === "day6") return tsStr.startsWith("2024-01-20");
+  if (range === "day7") return tsStr.startsWith("2024-01-21");
+  return true;
+};
+
 export function FlowRateChart({
   readings,
   zoneTotals,
@@ -43,6 +76,7 @@ export function FlowRateChart({
   replayCutoffDate,
 }: FlowRateChartProps) {
   const [chartMode, setChartMode] = useState<"zone_total" | "per_fixture">("zone_total");
+  const [dateRange, setDateRange] = useState<string>("all");
   const [selectedZones, setSelectedZones] = useState<string[]>([
     "T2_Restroom_A",
     "T2_Restroom_B",
@@ -68,6 +102,7 @@ export function FlowRateChart({
       const timeMap = new Map<string, any>();
       for (const item of zoneTotals) {
         if (!selectedZones.includes(item.zone_id)) continue;
+        if (!isReplay && !isTimestampInRange(item.timestamp_str, dateRange)) continue;
         if (!timeMap.has(item.timestamp_str)) {
           timeMap.set(item.timestamp_str, { timestamp: item.timestamp_str });
         }
@@ -84,6 +119,7 @@ export function FlowRateChart({
       const timeMap = new Map<string, any>();
       for (const item of readings) {
         if (!selectedZones.includes(item.zone_id)) continue;
+        if (!isReplay && !isTimestampInRange(item.timestamp_str, dateRange)) continue;
         const fid = item.fixture_id || "Unknown";
         if (!timeMap.has(item.timestamp_str)) {
           timeMap.set(item.timestamp_str, { timestamp: item.timestamp_str });
@@ -97,7 +133,7 @@ export function FlowRateChart({
       }
       return Array.from(timeMap.values());
     }
-  }, [chartMode, zoneTotals, readings, selectedZones, isReplay, replayCutoffDate]);
+  }, [chartMode, zoneTotals, readings, selectedZones, isReplay, replayCutoffDate, dateRange]);
 
   // Fixtures list if in per_fixture mode
   const fixtureKeys = useMemo(() => {
@@ -126,9 +162,9 @@ export function FlowRateChart({
   };
 
   return (
-    <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+    <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
       {/* Header controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-white tracking-wide uppercase">
@@ -136,7 +172,7 @@ export function FlowRateChart({
             </h2>
             <span className="text-[11px] text-[#8B949E]">
               {isReplay
-                ? "Replay Telemetry (Full 48-hour timeline)"
+                ? "Replay Telemetry (Full 7-day timeline)"
                 : chartMode === "zone_total"
                 ? "4 Zones Aggregated"
                 : "Per-Fixture Breakdown"}
@@ -149,14 +185,14 @@ export function FlowRateChart({
           </div>
           <p className="text-xs text-[#8B949E] mt-0.5">
             {isReplay
-              ? "Full 48-Hour simulated timeline — scrub or press Play to stream flow telemetry across the complete canvas"
-              : "48-Hour continuous sensor stream downsampled at 5-minute intervals"}
+              ? "Full 7-Day simulated timeline — scrub or press Play to stream flow telemetry across the complete canvas"
+              : "7-Day continuous sensor stream downsampled at 5-minute intervals"}
           </p>
         </div>
 
         {/* View Mode Radio & Zone Chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-[#0B0F14] p-1 rounded-lg border border-white/[0.08]">
+          <div className="flex items-center bg-[#0B0F14] p-1 rounded-md">
             <button
               onClick={() => setChartMode("zone_total")}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
@@ -180,6 +216,64 @@ export function FlowRateChart({
           </div>
         </div>
       </div>
+
+      {/* Date Range Selector (Full Dataset View only) */}
+      {!isReplay && (
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-2.5 rounded-md bg-[#080B0F]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-medium text-[#8B949E] uppercase tracking-wider">Date Range:</span>
+            <div className="flex items-center bg-[#10151E] p-0.5 rounded-md">
+              {[
+                { id: "all", label: "Full 7 Days" },
+                { id: "last24h", label: "Last 24 Hours" },
+                { id: "last3d", label: "Last 3 Days" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setDateRange(p.id)}
+                  className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                    dateRange === p.id
+                      ? "bg-[#1B222C] text-[#D4A359] font-semibold border border-[#D4A359]/30 shadow-sm"
+                      : "text-[#8B949E] hover:text-white"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
+
+            <div className="flex items-center bg-[#10151E] p-0.5 rounded-md overflow-x-auto">
+              <span className="text-[10px] text-[#8B949E] px-2 font-medium">Day:</span>
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => {
+                const id = `day${d}`;
+                const dateLabel = `Jan ${14 + d}`;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setDateRange(id)}
+                    title={`${dateLabel} (Day ${d})`}
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+                      dateRange === id
+                        ? "bg-[#1B222C] text-[#5B8DEF] font-bold border border-[#5B8DEF]/30 shadow-sm"
+                        : "text-[#8B949E] hover:text-white"
+                    }`}
+                  >
+                    D{d} <span className="text-[9px] opacity-70">({14 + d}th)</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <span className="text-[11px] text-[#8B949E]">
+            Window: <strong className="text-white font-medium">
+              {DATE_PRESETS.find((p) => p.id === dateRange)?.label || "Full 7 Days"}
+            </strong> ({chartData.length} pts)
+          </span>
+        </div>
+      )}
 
       {/* Zone selection filter chips */}
       <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-white/[0.06]">
@@ -211,7 +305,7 @@ export function FlowRateChart({
       <div className="h-[320px] w-full">
         {loading || chartData.length === 0 ? (
           <div className="h-full flex items-center justify-center text-xs text-[#8B949E]">
-            Loading 48-hour flow telemetry...
+            Loading 7-day flow telemetry...
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

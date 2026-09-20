@@ -32,7 +32,7 @@ export function DailyDigestCard({ digests }: DailyDigestCardProps) {
   };
 
   return (
-    <div className="bg-[#161B22] border border-white/[0.08] border-l-4 border-l-[#C5A059] rounded-xl p-5 shadow-sm">
+    <div className="bg-[#0F141D] border-l-4 border-l-[#C5A059] rounded-md p-5 shadow-sm">
       {/* Header with date selector */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function DailyDigestCard({ digests }: DailyDigestCardProps) {
                   : "text-[#8B949E] hover:text-white"
               }`}
             >
-              {d === "2024-01-16" ? "Tue, Jan 16" : d === "2024-01-15" ? "Mon, Jan 15" : d}
+              {formatDateTitle(d).split(",").slice(0, 2).join(",")}
             </button>
           ))}
         </div>

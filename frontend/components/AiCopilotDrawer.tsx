@@ -115,7 +115,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
 
       {/* Slide-over Drawer Panel */}
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#141A22] border-l border-white/10 shadow-2xl flex flex-col">
+        <div className="w-screen max-w-md bg-[#0F141D] border-l border-white/10 shadow-2xl flex flex-col">
           {/* Drawer Header */}
           <div className="px-5 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#10141A]/90">
             <div className="flex items-center gap-2.5">
@@ -163,7 +163,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                  className={`max-w-[85%] rounded-md px-3.5 py-2.5 text-xs leading-relaxed ${
                     msg.sender === "user"
                       ? "bg-[#4D88C7] text-white rounded-br-none"
                       : "bg-[#1B222C] text-[#C9D1D9] border border-white/[0.08] rounded-bl-none"
@@ -187,7 +187,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
                 <div className="h-7 w-7 rounded-full bg-[#4D88C7]/20 border border-[#4D88C7]/40 flex items-center justify-center text-[#4D88C7] shrink-0">
                   <Bot className="h-3.5 w-3.5 animate-spin" />
                 </div>
-                <div className="bg-[#1B222C] border border-white/[0.08] rounded-xl px-3.5 py-2">
+                <div className="bg-[#1B222C] rounded-md px-3.5 py-2">
                   <span className="inline-flex gap-1 items-center">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#D4A359] animate-bounce" />
                     <span className="h-1.5 w-1.5 rounded-full bg-[#D4A359] animate-bounce [animation-delay:0.2s]" />
@@ -206,7 +206,7 @@ export function AiCopilotDrawer({ isOpen, onClose }: AiCopilotDrawerProps) {
                 e.preventDefault();
                 handleSend();
               }}
-              className="flex items-center gap-2 bg-[#141A22] border border-white/15 rounded-lg px-3 py-1.5 focus-within:border-[#D4A359] transition-all"
+              className="flex items-center gap-2 bg-[#0B0F14] border border-white/15 rounded-lg px-3 py-1.5 focus-within:border-[#D4A359] transition-all"
             >
               <input
                 type="text"

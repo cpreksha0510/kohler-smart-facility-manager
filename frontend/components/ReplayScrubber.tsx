@@ -62,7 +62,7 @@ export function ReplayScrubber({
   const progressPercent = Math.min(100, Math.round((currentHours / simDurationHours) * 100));
 
   return (
-    <div className="bg-[#141A22] border border-[#D4A359]/30 rounded-xl p-5 shadow-lg">
+    <div className="bg-[#0F141D] rounded-md p-5 shadow-lg">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
         {/* Controls: Play, Reset, Speed */}
         <div className="flex items-center gap-3">
@@ -128,11 +128,26 @@ export function ReplayScrubber({
           className="w-full h-2 bg-[#0B0F14] rounded-lg appearance-none cursor-pointer accent-[#D4A359]"
         />
         <div className="flex justify-between text-[10px] text-[#8B949E] font-mono">
-          <span>0h (Mon 00:00)</span>
-          <span>12h (Mon 12:00)</span>
-          <span>24h (Tue 00:00)</span>
-          <span>36h (Tue 12:00)</span>
-          <span>48h (Wed 00:00)</span>
+          {simDurationHours >= 168 ? (
+            <>
+              <span>0h (D1)</span>
+              <span>24h (D2)</span>
+              <span>48h (D3)</span>
+              <span>72h (D4)</span>
+              <span>96h (D5)</span>
+              <span>120h (D6)</span>
+              <span>144h (D7)</span>
+              <span>168h</span>
+            </>
+          ) : (
+            <>
+              <span>0h (Mon 00:00)</span>
+              <span>12h (Mon 12:00)</span>
+              <span>24h (Tue 00:00)</span>
+              <span>36h (Tue 12:00)</span>
+              <span>48h (Wed 00:00)</span>
+            </>
+          )}
         </div>
       </div>
     </div>

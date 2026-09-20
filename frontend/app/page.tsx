@@ -45,36 +45,47 @@ export default function DashboardPage() {
   const [replayHours, setReplayHours] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  // Initial Data Fetch
+  // Initial Data Fetch with progressive rendering
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [ovRes, ztRes, rdRes, hmRes, tkRes, dgRes, susRes, fhRes] = await Promise.all([
-        fetch("/api/overview"),
-        fetch("/api/readings/zone-totals?downsample_mins=5"),
-        fetch("/api/readings?downsample_mins=5"),
-        fetch("/api/occupancy-heatmap"),
-        fetch("/api/tickets"),
-        fetch("/api/digests"),
-        fetch("/api/sustainability/summary"),
-        fetch("/api/fixture-health"),
-      ]);
+      const fetchOverview = fetch("/api/overview").then(async (r) => {
+        if (r.ok) setMetrics(await r.json());
+      });
+      const fetchTickets = fetch("/api/tickets").then(async (r) => {
+        if (r.ok) setTickets(await r.json());
+      });
+      const fetchHealth = fetch("/api/fixture-health").then(async (r) => {
+        if (r.ok) {
+          const d: FixtureHealthApiResponse = await r.json();
+          setFixtureHealth(d.fixtures || []);
+          setHealthSummary(d.summary || null);
+        }
+      });
+      const fetchZoneTotals = fetch("/api/readings/zone-totals?downsample_mins=5").then(async (r) => {
+        if (r.ok) setZoneTotals(await r.json());
+      });
+      const fetchHeatmap = fetch("/api/occupancy-heatmap").then(async (r) => {
+        if (r.ok) setHeatmapData(await r.json());
+      });
+      const fetchDigests = fetch("/api/digests").then(async (r) => {
+        if (r.ok) setDigests(await r.json());
+      });
+      const fetchSustainability = fetch("/api/sustainability/summary").then(async (r) => {
+        if (r.ok) setSustainability(await r.json());
+      });
+      const fetchReadings = fetch("/api/readings?downsample_mins=5").then(async (r) => {
+        if (r.ok) setReadings(await r.json());
+      });
 
-      if (ovRes.ok) setMetrics(await ovRes.json());
-      if (ztRes.ok) setZoneTotals(await ztRes.json());
-      if (rdRes.ok) setReadings(await rdRes.json());
-      if (hmRes.ok) setHeatmapData(await hmRes.json());
-      if (tkRes.ok) setTickets(await tkRes.json());
-      if (dgRes.ok) setDigests(await dgRes.json());
-      if (susRes.ok) setSustainability(await susRes.json());
-      if (fhRes.ok) {
-        const fhData: FixtureHealthApiResponse = await fhRes.json();
-        setFixtureHealth(fhData.fixtures || []);
-        setHealthSummary(fhData.summary || null);
-      }
+      // Unlock initial dashboard view as soon as core operational metrics & chart totals land
+      await Promise.all([fetchOverview, fetchTickets, fetchHealth, fetchZoneTotals]);
+      setLoading(false);
+
+      // Remaining secondary datasets resolve in background
+      await Promise.all([fetchHeatmap, fetchDigests, fetchSustainability, fetchReadings]);
     } catch (err) {
       console.error("Error fetching facility telemetry:", err);
-    } finally {
       setLoading(false);
     }
   };
@@ -156,7 +167,7 @@ export default function DashboardPage() {
     const waterLoss = activeTickets.reduce((acc, t) => acc + (t.estimated_water_loss_liters || 0), 0);
     const costImpact = activeTickets.reduce((acc, t) => acc + (t.estimated_cost_impact || 0), 0);
     const openCount = activeTickets.filter((t) => t.status !== "resolved").length;
-    const totalSimHours = metrics.sim_duration_hours || 48;
+    const totalSimHours = metrics.sim_duration_hours || 168;
     const progressRatio = Math.min(1, Math.max(0, replayHours / totalSimHours));
     const scaledReadings = Math.round(metrics.sensor_readings_count * progressRatio);
 
@@ -217,7 +228,7 @@ export default function DashboardPage() {
             {viewMode === "replay" && (
               <ReplayScrubber
                 simStart={metrics?.sim_start || "2024-01-15T00:00:00"}
-                simDurationHours={metrics?.sim_duration_hours || 48}
+                simDurationHours={metrics?.sim_duration_hours || 168}
                 currentHours={replayHours}
                 onChangeHours={setReplayHours}
                 isPlaying={isPlaying}
@@ -254,10 +265,9 @@ export default function DashboardPage() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.08] bg-[#141A22] py-4 text-center text-xs text-[#8B949E]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="border-t border-white/[0.08] bg-[#0F141D] py-4 text-center text-xs text-[#8B949E]">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-center text-center">
           <span>KOHLER Facility Monitor · Airport Restroom Operations Platform</span>
-          <span className="font-mono text-[11px] text-[#D4A359]">Branch: ui-experiment</span>
         </div>
       </footer>
     </div>

@@ -97,7 +97,7 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
       </div>
 
       {/* 2. Four Multi-Signal Evidence Bars with Consolidated Telemetry */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#141A22] p-3 rounded-lg border border-white/[0.06]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#0B0F14] p-3 rounded-lg border border-white/[0.06]">
         {/* Flow Deviation */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
@@ -186,7 +186,7 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
       </div>
 
       {/* 3. Formula & Grounding Rationale Note */}
-      <div className="flex items-start gap-2 pt-1 text-[11px] text-[#8B949E]/80 bg-[#141A22]/50 p-2.5 rounded border border-white/[0.04]">
+      <div className="flex items-start gap-2 pt-1 text-[11px] text-[#8B949E]/80 bg-[#0B0F14] p-2.5 rounded border border-white/[0.04]">
         <HelpCircle className="h-3.5 w-3.5 text-[#D4A359] shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <p>

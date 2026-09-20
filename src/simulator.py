@@ -48,7 +48,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.config import (
     SIM_START, SIM_DURATION_HOURS, READING_INTERVAL_MINUTES,
     FIXTURES, EVENT_PARAMS, BASE_EVENTS_PER_HOUR, ZONE_TRAFFIC_MULTIPLIER,
-    ANOMALY_SUSTAINED_LEAK, ANOMALY_SLOW_DRIP, ANOMALY_FALSE_POSITIVE,
+    ANOMALY_SCHEDULE,
     DB_PATH,
 )
 from src.database import init_db, insert_readings_df
@@ -129,41 +129,26 @@ def simulate_fixture(
         hour = ts.hour
 
         # ── Anomaly injection (priority over normal simulation) ────────────────
+        injected = False
+        for anomaly in ANOMALY_SCHEDULE:
+            if fixture_id != anomaly["fixture_id"]:
+                continue
 
-        # [1] Sustained leak — Sink_01, Day 2 02:00–06:00
-        if (
-            fixture_id == ANOMALY_SUSTAINED_LEAK["fixture_id"]
-            and in_hour_window(minute_offset,
-                               ANOMALY_SUSTAINED_LEAK["start_hour"],
-                               ANOMALY_SUSTAINED_LEAK["end_hour"])
-        ):
-            flows[i]     = max(0.0, ANOMALY_SUSTAINED_LEAK["flow_lpm"] + rng.normal(0, 0.05))
-            occupancy[i] = ANOMALY_SUSTAINED_LEAK["occupancy"]
-            flush_cnt[i] = flush_count
-            continue
+            match = False
+            if "start_hour" in anomaly and "end_hour" in anomaly:
+                match = in_hour_window(minute_offset, anomaly["start_hour"], anomaly["end_hour"])
+            elif "start_minute" in anomaly and "end_minute" in anomaly:
+                match = in_minute_window(minute_offset, anomaly["start_minute"], anomaly["end_minute"])
 
-        # [2] Slow drip — Toilet_B1, Day 2 00:00–08:00
-        if (
-            fixture_id == ANOMALY_SLOW_DRIP["fixture_id"]
-            and in_hour_window(minute_offset,
-                               ANOMALY_SLOW_DRIP["start_hour"],
-                               ANOMALY_SLOW_DRIP["end_hour"])
-        ):
-            flows[i]     = max(0.0, ANOMALY_SLOW_DRIP["flow_lpm"] + rng.normal(0, 0.02))
-            occupancy[i] = ANOMALY_SLOW_DRIP["occupancy"]
-            flush_cnt[i] = flush_count
-            continue
+            if match:
+                noise_scale = 0.02 if anomaly["flow_lpm"] < 1.0 else 0.05
+                flows[i]     = max(0.0, anomaly["flow_lpm"] + rng.normal(0, noise_scale))
+                occupancy[i] = anomaly["occupancy"]
+                flush_cnt[i] = flush_count
+                injected = True
+                break
 
-        # [3] False-positive trap — Sink_02, Day 1 08:15–08:28
-        if (
-            fixture_id == ANOMALY_FALSE_POSITIVE["fixture_id"]
-            and in_minute_window(minute_offset,
-                                 ANOMALY_FALSE_POSITIVE["start_minute"],
-                                 ANOMALY_FALSE_POSITIVE["end_minute"])
-        ):
-            flows[i]     = max(0.0, ANOMALY_FALSE_POSITIVE["flow_lpm"] + rng.normal(0, 0.1))
-            occupancy[i] = ANOMALY_FALSE_POSITIVE["occupancy"]
-            flush_cnt[i] = flush_count
+        if injected:
             continue
 
         # ── Normal discrete-event simulation ──────────────────────────────────
@@ -340,14 +325,22 @@ def run_batch(random_seed: int = 42) -> None:
     print(f"  Mean event flow   : {event_rows['flow_rate_lpm'].mean():.2f} LPM")
     print(f"  Max flow recorded : {combined['flow_rate_lpm'].max():.2f} LPM")
 
-    print("\nInjected anomaly windows:")
-    a = ANOMALY_SUSTAINED_LEAK
-    print(f"  [1] Sustained leak  - {a['fixture_id']:<12}  Day 2 {a['start_hour']-24:02d}:00->{a['end_hour']-24:02d}:00  @ {a['flow_lpm']} LPM, occ={a['occupancy']}")
-    a = ANOMALY_SLOW_DRIP
-    print(f"  [2] Slow drip       - {a['fixture_id']:<12}  Day 2 {a['start_hour']-24:02d}:00->{a['end_hour']-24:02d}:00  @ {a['flow_lpm']} LPM, occ={a['occupancy']}")
-    a = ANOMALY_FALSE_POSITIVE
-    s, e = a['start_minute'], a['end_minute']
-    print(f"  [3] False positive  - {a['fixture_id']:<12}  Day 1 {s//60:02d}:{s%60:02d}->{e//60:02d}:{e%60:02d}  @ {a['flow_lpm']} LPM, occ={a['occupancy']}")
+    print("\nInjected anomaly windows (Multi-zone 7-day schedule):")
+    for idx, a in enumerate(ANOMALY_SCHEDULE, 1):
+        fid = a["fixture_id"]
+        zid = a["zone_id"]
+        flow = a["flow_lpm"]
+        atype = a["anomaly_type"]
+        if "start_hour" in a:
+            day = (a["start_hour"] // 24) + 1
+            sh = a["start_hour"] % 24
+            eh = a["end_hour"] % 24
+            print(f"  [{idx}] {atype:<19} - {fid:<10} ({zid:<14}) Day {day} {sh:02d}:00->{eh:02d}:00 @ {flow} LPM")
+        elif "start_minute" in a:
+            day = (a["start_minute"] // 1440) + 1
+            sm = a["start_minute"] % 1440
+            em = a["end_minute"] % 1440
+            print(f"  [{idx}] {atype:<19} - {fid:<10} ({zid:<14}) Day {day} {sm//60:02d}:{sm%60:02d}->{em//60:02d}:{em%60:02d} @ {flow} LPM")
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

@@ -21,7 +21,7 @@ export function Header({
   openTicketsCount,
 }: HeaderProps) {
   return (
-    <header className="border-b border-white/[0.08] bg-[#141A22]/90 backdrop-blur-md sticky top-0 z-30 px-6 py-4">
+    <header className="border-b border-white/[0.08] bg-[#0F141D]/95 backdrop-blur-md sticky top-0 z-30 px-6 py-4">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         {/* Brand Lockup */}
         <div className="flex items-center gap-4">
@@ -39,7 +39,7 @@ export function Header({
               </span>
             </div>
             <p className="text-xs text-[#8B949E] mt-0.5">
-              Terminal 2 Airport Restroom Block · 4 Zones · 17 Smart Fixtures · Jan 15–16, 2024
+              Terminal 2 Airport Restroom Block · 4 Zones · 17 Smart Fixtures · Jan 15–21, 2024
             </p>
           </div>
         </div>
@@ -47,7 +47,7 @@ export function Header({
         {/* Navigation & Action Controls */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           {/* Main Navigation Tabs */}
-          <nav className="flex items-center bg-[#0B0F14] p-1 rounded-xl border border-white/[0.08] shadow-inner gap-1">
+          <nav className="flex items-center bg-[#0B0F14] p-1 rounded-md shadow-inner gap-1">
             <button
               id="nav-tab-dashboard"
               onClick={() => setActiveTab("dashboard")}

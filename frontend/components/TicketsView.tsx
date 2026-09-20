@@ -177,7 +177,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
   return (
     <div className="space-y-6">
       {/* ── Top Filtering & Controls Toolbar ─────────────────────────────────── */}
-      <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-4.5 shadow-sm">
+      <div className="bg-[#0F141D] rounded-md p-4.5 shadow-sm">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Filter Dropdowns */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -247,7 +247,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
         </div>
 
         {activeTickets.length === 0 ? (
-          <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-10 text-center text-xs text-[#8B949E]">
+          <div className="bg-[#0F141D] rounded-md p-10 text-center text-xs text-[#8B949E]">
             No active tickets matching the selected filters. All anomalies resolved or suppressed.
           </div>
         ) : (
@@ -265,7 +265,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
               return (
                 <div
                   key={t.ticket_id}
-                  className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-5 shadow-sm transition-all relative overflow-hidden"
+                  className="bg-[#0F141D] rounded-md p-5 shadow-sm transition-all relative overflow-hidden"
                 >
                   {/* Left severity indicator bar */}
                   <div
@@ -433,7 +433,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
           </div>
 
           {resolvedTickets.length === 0 ? (
-            <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-8 text-center text-xs text-[#8B949E]">
+            <div className="bg-[#0F141D] rounded-md p-8 text-center text-xs text-[#8B949E]">
               No resolved tickets recorded yet.
             </div>
           ) : (
@@ -441,7 +441,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
               {resolvedTickets.map((t) => (
                 <div
                   key={t.ticket_id}
-                  className="bg-[#141A22]/70 border border-white/[0.06] rounded-xl p-4.5 opacity-90 transition-all"
+                  className="bg-[#0F141D] rounded-md p-4.5 opacity-90 transition-all"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-white/[0.04]">
                     <div className="flex flex-wrap items-center gap-2">
@@ -481,7 +481,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
 
                   {/* Feature 2: Intervention Impact (Section 2.7) */}
                   {t.sustainability?.intervention_impact && (
-                    <div className="mt-2.5 p-3 bg-[#141A22] border border-white/[0.08] rounded-lg text-xs space-y-2">
+                    <div className="mt-2.5 p-3 bg-[#0B0F14] border border-white/[0.08] rounded-lg text-xs space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#F0F6FC] text-[11px]">
                           <span className="p-1 rounded bg-[#2EB88A]/15 text-[#2EB88A]">
@@ -577,7 +577,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
       {/* ── RESOLUTION NOTE MODAL DIALOG ────────────────────────────────────── */}
       {resolvingTicket && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#161B22] border border-white/15 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-[#0F141D] rounded-md max-w-lg w-full p-6 shadow-2xl space-y-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">

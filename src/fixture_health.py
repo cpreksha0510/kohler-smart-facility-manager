@@ -164,32 +164,43 @@ def calculate_fixture_trend(
     readings_df: Optional[pd.DataFrame] = None,
 ) -> str:
     """
-    Calculate simple trend by comparing recent vs older anomaly frequency per Section 1.4:
-    Deteriorating / Stable / Improving.
+    Calculate trend by comparing recent vs older anomaly frequency per Section 1.4:
+    - Deteriorating: Accelerating incidents or active failures in the recent window.
+    - Improving: Prior historical incidents successfully resolved with no active leaks.
+    - Stable: Nominal operating condition with no active anomalies.
     """
     if not fixture_tickets:
         return "Stable"
 
-    # Split 48-hour simulation window into Day 1 (older) vs Day 2 (recent)
-    midpoint_str = "2024-01-16 00:00:00"
+    # For 7-day (168h) timespan: Days 1-4 (0-96h) is historical baseline,
+    # Days 5-7 (96-168h) is recent window.
+    split_hours = 96 if SIM_DURATION_HOURS >= 96 else SIM_DURATION_HOURS // 2
+    split_dt = SIM_START + datetime.timedelta(hours=split_hours)
+    split_iso = split_dt.isoformat()
 
-    older_count = sum(1 for t in fixture_tickets if str(t.get("timestamp_flagged", "")) < midpoint_str)
-    recent_count = sum(1 for t in fixture_tickets if str(t.get("timestamp_flagged", "")) >= midpoint_str)
+    older_tickets = [t for t in fixture_tickets if str(t.get("timestamp_flagged", "")) < split_iso]
+    recent_tickets = [t for t in fixture_tickets if str(t.get("timestamp_flagged", "")) >= split_iso]
 
-    # Check if recent tickets are resolved
+    older_count = len(older_tickets)
+    recent_count = len(recent_tickets)
+
+    active_recent = [t for t in recent_tickets if str(t.get("status", "")).lower() != "resolved"]
     all_resolved = all(str(t.get("status", "")).lower() == "resolved" for t in fixture_tickets)
 
-    if recent_count > older_count:
+    # 1. If there are active unresolved anomalies in the recent window -> Deteriorating
+    if active_recent:
         return "Deteriorating"
+    # 2. If recent anomaly rate exceeds older rate -> Deteriorating
+    elif recent_count > older_count:
+        return "Deteriorating"
+    # 3. If historical anomalies were resolved and recent window is clean -> Improving
+    elif all_resolved and older_count > 0 and recent_count == 0:
+        return "Improving"
+    # 4. If all resolved and overall anomaly frequency decreased -> Improving
     elif all_resolved and len(fixture_tickets) > 0:
         return "Improving"
-    elif recent_count < older_count and recent_count == 0:
-        return "Improving"
-    else:
-        # If active high severity tickets exist in recent window
-        if any(t.get("severity_label") in ("High", "Critical") and t.get("status") != "resolved" for t in fixture_tickets):
-            return "Deteriorating"
-        return "Stable"
+    # 5. Otherwise, stable
+    return "Stable"
 
 
 def generate_deterministic_recommendation(

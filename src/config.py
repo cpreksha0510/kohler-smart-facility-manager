@@ -13,8 +13,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = PROJECT_ROOT / "facility.db"   # created at project root, not inside src/
 
 # ── Simulation window ──────────────────────────────────────────────────────────
-SIM_START = datetime.datetime(2024, 1, 15, 0, 0, 0)   # Jan 15 2024, 00:00
-SIM_DURATION_HOURS = 48
+SIM_START = datetime.datetime(2024, 1, 15, 0, 0, 0)   # Jan 15 2024, 00:00 (Monday)
+SIM_DURATION_HOURS = 168                               # 7 full days (168 hours)
 READING_INTERVAL_MINUTES = 1                           # one row per minute per fixture
 
 # ── Facility layout (zone_id, fixture_id, fixture_type) ────────────────────────
@@ -137,51 +137,99 @@ EVENT_DURATION = {
     "urinal": {"min": 0.05, "max": 0.13},
 }
 
-# ── Anomaly injection windows ──────────────────────────────────────────────────
+# ── Anomaly injection schedule (Multi-zone, 7-day realistic distribution) ───────
+# Distributed across 6 distinct fixtures spanning all 4 zones:
+# - T2_Restroom_A (Departure): Sink_01 (Sustained leak), Toilet_A2 (Historical stick), Sink_02 (False-positive trap)
+# - T2_Restroom_B (Arrival): Toilet_B1 (Recurring slow drip), Sink_04 (Early slow drip)
+# - T2_Family_Room (Family): Sink_06 (Overnight slow drip)
+# - T2_Staff_WC (Staff): Toilet_S1 (Stuck diaphragm leak)
+ANOMALY_SCHEDULE = [
+    # 1. Sink_01 (T2_Restroom_A) — Sustained valve leak (Day 6, 02:00–06:00)
+    {
+        "fixture_id": "Sink_01",
+        "zone_id": "T2_Restroom_A",
+        "start_hour": 122,
+        "end_hour": 126,
+        "flow_lpm": 3.5,
+        "occupancy": 0,
+        "anomaly_type": "sustained_leak",
+    },
+    # 2. Toilet_B1 (T2_Restroom_B) — Overnight slow-drip flapper creep (Day 5, 01:00–07:00)
+    {
+        "fixture_id": "Toilet_B1",
+        "zone_id": "T2_Restroom_B",
+        "start_hour": 97,
+        "end_hour": 103,
+        "flow_lpm": 0.25,
+        "occupancy": 0,
+        "anomaly_type": "slow_drip",
+    },
+    # 3. Toilet_B1 (T2_Restroom_B) — Recurring slow-drip (Day 7, 00:00–06:00)
+    {
+        "fixture_id": "Toilet_B1",
+        "zone_id": "T2_Restroom_B",
+        "start_hour": 144,
+        "end_hour": 150,
+        "flow_lpm": 0.25,
+        "occupancy": 0,
+        "anomaly_type": "slow_drip",
+    },
+    # 4. Toilet_A2 (T2_Restroom_A) — Flushometer valve stick (Day 2, 02:30–04:30)
+    {
+        "fixture_id": "Toilet_A2",
+        "zone_id": "T2_Restroom_A",
+        "start_minute": 26 * 60 + 30,  # 1590 (Day 2, 02:30)
+        "end_minute": 28 * 60 + 30,    # 1710 (Day 2, 04:30)
+        "flow_lpm": 2.8,
+        "occupancy": 0,
+        "anomaly_type": "sustained_leak",
+    },
+    # 5. Sink_06 (T2_Family_Room) — Overnight supply line drip (Day 6, 01:30–04:30)
+    {
+        "fixture_id": "Sink_06",
+        "zone_id": "T2_Family_Room",
+        "start_minute": 121 * 60 + 30, # 7290 (Day 6, 01:30)
+        "end_minute": 124 * 60 + 30,   # 7470 (Day 6, 04:30)
+        "flow_lpm": 0.35,
+        "occupancy": 0,
+        "anomaly_type": "slow_drip",
+    },
+    # 6. Toilet_S1 (T2_Staff_WC) — Stuck flush valve diaphragm (Day 7, 02:00–05:00)
+    {
+        "fixture_id": "Toilet_S1",
+        "zone_id": "T2_Staff_WC",
+        "start_hour": 146,
+        "end_hour": 149,
+        "flow_lpm": 3.2,
+        "occupancy": 0,
+        "anomaly_type": "sustained_leak",
+    },
+    # 7. Sink_04 (T2_Restroom_B) — Early micro-drip (Day 3, 02:00–06:00)
+    {
+        "fixture_id": "Sink_04",
+        "zone_id": "T2_Restroom_B",
+        "start_hour": 50,
+        "end_hour": 54,
+        "flow_lpm": 0.22,
+        "occupancy": 0,
+        "anomaly_type": "slow_drip",
+    },
+    # 8. Sink_02 (T2_Restroom_A) — False-positive trap (Day 3 morning rush 08:15–08:22, occ=1)
+    {
+        "fixture_id": "Sink_02",
+        "zone_id": "T2_Restroom_A",
+        "start_minute": 48 * 60 + 8 * 60 + 15,  # 3375
+        "end_minute": 48 * 60 + 8 * 60 + 22,    # 3382 (7 min < 10 min threshold -> suppressed)
+        "flow_lpm": 7.5,
+        "occupancy": 1,
+        "anomaly_type": "false_positive_trap",
+    },
+]
 
-# Anomaly 1: Sustained leak — Sink_01, Day 2 02:00–06:00
-# 3.5 LPM continuous flow with zero occupancy.
-# Against the new discrete-event baseline, overnight flow = exactly 0.0 LPM
-# (no events occur), so 3.5 LPM is a stark flat line against a zero background —
-# exactly what a stuck-valve or pipe-joint failure looks like on a real sensor.
-ANOMALY_SUSTAINED_LEAK = {
-    "fixture_id": "Sink_01",
-    "zone_id":    "T2_Restroom_A",
-    "start_hour": 26,     # hour 26 from SIM_START = Day 2, 02:00
-    "end_hour":   30,     # hour 30 from SIM_START = Day 2, 06:00
-    "flow_lpm":   3.5,
-    "occupancy":  0,
-}
-
-# Anomaly 2: Slow drip — Toilet_B1, Day 2 00:00–08:00
-# 0.25 LPM tiny trickle with zero occupancy.
-# INTENTIONALLY below the 4a detection threshold (threshold ≈ 0.5 LPM overnight).
-# Against the new baseline, overnight toilet flow = 0.0 LPM, so even 0.25 LPM
-# accumulates visibly in the 4c cumulative window scan.
-# Phase 2 (Section 4c) catches this; Phase 1 (4a) misses it by design.
-ANOMALY_SLOW_DRIP = {
-    "fixture_id": "Toilet_B1",
-    "zone_id":    "T2_Restroom_B",
-    "start_hour": 24,     # Day 2, 00:00
-    "end_hour":   32,     # Day 2, 08:00
-    "flow_lpm":   0.25,
-    "occupancy":  0,
-}
-
-# Anomaly 3: False-positive trap — Sink_02, Day 1 08:15–08:28
-# High flow (7.5 LPM) with occupancy = 1 during morning rush.
-# In the new discrete-event model, a normal sink wash lasts 15–45 seconds
-# (1 row).  This anomaly runs for 13 consecutive rows at high flow — anomalous
-# duration against a realistic baseline that rarely exceeds 1–2 rows per event.
-# Occupancy = 1 throughout. Phase 2 (4b) suppresses it via occ_mismatch = 0.
-ANOMALY_FALSE_POSITIVE = {
-    "fixture_id":   "Sink_02",
-    "zone_id":      "T2_Restroom_A",
-    "start_minute": 495,  # 8h 15m from SIM_START = Day 1, 08:15
-    "end_minute":   508,  # 8h 28m from SIM_START = Day 1, 08:28  (13 min)
-    "flow_lpm":     7.5,
-    "occupancy":    1,
-}
+# Legacy backward-compatibility aliases
+ANOMALY_SUSTAINED_LEAK = ANOMALY_SCHEDULE[0]
+ANOMALY_SLOW_DRIP = ANOMALY_SCHEDULE[1]
+ANOMALY_FALSE_POSITIVE = ANOMALY_SCHEDULE[7]
 
 # ── Detection thresholds (Section 4a) ─────────────────────────────────────────
 BASELINE_SIGMA = 2.5         # flag if flow > mean + BASELINE_SIGMA × std

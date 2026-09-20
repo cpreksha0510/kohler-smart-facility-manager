@@ -178,7 +178,7 @@ export function FixtureHealthView({
         {/* Methodology Toggle */}
         <button
           onClick={() => setShowFormulaInfo(!showFormulaInfo)}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#141A22] text-[#8B949E] hover:text-white border border-white/[0.08] hover:border-white/20 transition-all self-start md:self-auto"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium bg-[#0F141D] hover:bg-[#141B26] text-[#8B949E] hover:text-white transition-all self-start md:self-auto"
         >
           <Info className="h-3.5 w-3.5 text-[#D4A359]" />
           <span>{showFormulaInfo ? "Hide Formula Rationale" : "View Health Formula"}</span>
@@ -187,7 +187,7 @@ export function FixtureHealthView({
 
       {/* 2. Expandable Formula Rationale Box */}
       {showFormulaInfo && (
-        <div className="bg-[#141A22] border border-[#D4A359]/30 rounded-xl p-5 shadow-lg space-y-3">
+        <div className="bg-[#0F141D] rounded-md p-5 shadow-lg space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-white flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[#D4A359]" />
@@ -199,27 +199,27 @@ export function FixtureHealthView({
             Per the PRD specification, predictive health operates on a deterministic, fully explainable model rather than an opaque ML black-box. Every fixture is scored between 0 (critical failure risk) and 100 (optimal health) using six normalized telemetry factors:
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-            <div className="p-2.5 rounded-lg bg-[#0B0F14] border border-white/[0.06]">
+            <div className="p-2.5 rounded-md bg-[#0B0F14]">
               <span className="text-[#8B949E] block text-[11px]">Freq. (30%)</span>
               <span className="font-semibold text-white">Anomaly Count</span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[#0B0F14] border border-white/[0.06]">
+            <div className="p-2.5 rounded-md bg-[#0B0F14]">
               <span className="text-[#8B949E] block text-[11px]">Recurrence (20%)</span>
               <span className="font-semibold text-white">Multi-Session</span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[#0B0F14] border border-white/[0.06]">
+            <div className="p-2.5 rounded-md bg-[#0B0F14]">
               <span className="text-[#8B949E] block text-[11px]">Drift (20%)</span>
               <span className="font-semibold text-white">Flow Variance</span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[#0B0F14] border border-white/[0.06]">
+            <div className="p-2.5 rounded-md bg-[#0B0F14]">
               <span className="text-[#8B949E] block text-[11px]">Slow Drip (15%)</span>
               <span className="font-semibold text-white">Overnight Creep</span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[#0B0F14] border border-white/[0.06]">
+            <div className="p-2.5 rounded-md bg-[#0B0F14]">
               <span className="text-[#8B949E] block text-[11px]">Sensor (10%)</span>
               <span className="font-semibold text-white">Signal Status</span>
             </div>
-            <div className="p-2.5 rounded-lg bg-[#0B0F14] border border-white/[0.06]">
+            <div className="p-2.5 rounded-md bg-[#0B0F14]">
               <span className="text-[#8B949E] block text-[11px]">Unresolved (5%)</span>
               <span className="font-semibold text-white">Open Tickets</span>
             </div>
@@ -230,12 +230,12 @@ export function FixtureHealthView({
       {/* 3. Top-Level KPI Metric Cards (Clean neutral numbers per prompt 9) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Facility Health Average */}
-        <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+        <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
               Facility Health Index
             </span>
-            <div className="p-2 rounded-lg bg-[#4D88C7]/15 border border-[#4D88C7]/30 text-[#4D88C7]">
+            <div className="p-2 rounded-md bg-[#4D88C7]/15 border border-[#4D88C7]/30 text-[#4D88C7]">
               <Activity className="h-4 w-4" />
             </div>
           </div>
@@ -252,12 +252,12 @@ export function FixtureHealthView({
         </div>
 
         {/* Card 2: High Risk / Degrading Fixtures */}
-        <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+        <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
               At-Risk Fixtures
             </span>
-            <div className="p-2 rounded-lg bg-[#F04438]/15 border border-[#F04438]/30 text-[#F04438]">
+            <div className="p-2 rounded-md bg-[#F04438]/15 border border-[#F04438]/30 text-[#F04438]">
               <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
@@ -273,12 +273,12 @@ export function FixtureHealthView({
         </div>
 
         {/* Card 3: Deteriorating Trend */}
-        <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+        <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
               Deteriorating Trend
             </span>
-            <div className="p-2 rounded-lg bg-[#C87A58]/15 border border-[#C87A58]/30 text-[#C87A58]">
+            <div className="p-2 rounded-md bg-[#C87A58]/15 border border-[#C87A58]/30 text-[#C87A58]">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
@@ -294,12 +294,12 @@ export function FixtureHealthView({
         </div>
 
         {/* Card 4: Healthy / Optimal */}
-        <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-5 shadow-sm">
+        <div className="bg-[#0F141D] rounded-md p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#8B949E]">
               Optimal Reliability
             </span>
-            <div className="p-2 rounded-lg bg-[#2EB88A]/15 border border-[#2EB88A]/30 text-[#2EB88A]">
+            <div className="p-2 rounded-md bg-[#2EB88A]/15 border border-[#2EB88A]/30 text-[#2EB88A]">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
@@ -316,7 +316,7 @@ export function FixtureHealthView({
       </div>
 
       {/* 4. Filter & Controls Bar */}
-      <div className="bg-[#141A22] border border-white/[0.08] rounded-xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-[#0F141D] rounded-md p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Zone Filters */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-[#8B949E] mr-1 flex items-center gap-1">
@@ -389,7 +389,7 @@ export function FixtureHealthView({
             <div
               key={fixture.fixture_id}
               onClick={() => setSelectedFixture(fixture)}
-              className="group bg-[#141A22] border border-white/[0.08] hover:border-white/20 rounded-xl p-5 shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between"
+              className="group bg-[#0F141D] hover:bg-[#141B26] rounded-md p-5 shadow-sm transition-all duration-200 cursor-pointer flex flex-col justify-between"
             >
               {/* Card Top */}
               <div>
@@ -489,7 +489,7 @@ export function FixtureHealthView({
           />
 
           <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-lg bg-[#141A22] border-l border-white/10 shadow-2xl flex flex-col">
+            <div className="w-screen max-w-lg bg-[#0F141D] border-l border-white/10 shadow-2xl flex flex-col">
               {/* Drawer Header */}
               <div className="px-6 py-5 border-b border-white/[0.08] bg-[#10141A] flex items-center justify-between">
                 <div>
@@ -516,7 +516,7 @@ export function FixtureHealthView({
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Status & Health Gauge Banner */}
-                <div className="bg-[#0B0F14] border border-white/[0.08] rounded-xl p-5 space-y-3">
+                <div className="bg-[#0B0F14] rounded-md p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs text-[#8B949E] block">Reliability Status</span>
@@ -554,7 +554,7 @@ export function FixtureHealthView({
                 </div>
 
                 {/* Recommendation Box */}
-                <div className="bg-[#D4A359]/10 border border-[#D4A359]/30 rounded-xl p-4">
+                <div className="bg-[#D4A359]/10 border border-[#D4A359]/30 rounded-md p-4">
                   <div className="flex items-center gap-2 text-[#D4A359] text-xs font-semibold uppercase tracking-wider mb-1.5">
                     <Wrench className="h-4 w-4" />
                     Recommended Operational Action
@@ -653,7 +653,7 @@ export function FixtureHealthView({
                   </h4>
 
                   {selectedFixture.anomaly_count === 0 ? (
-                    <div className="p-4 rounded-xl bg-[#0B0F14] border border-white/[0.06] text-center text-xs text-[#8B949E]">
+                    <div className="p-4 rounded-md bg-[#0B0F14] text-center text-xs text-[#8B949E]">
                       No anomalous tickets recorded. Fixture telemetry is stable.
                     </div>
                   ) : (

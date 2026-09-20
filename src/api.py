@@ -99,15 +99,15 @@ def health():
 @app.get("/api/overview")
 def get_overview():
     """Return top-level metric card data and facility configuration."""
-    readings = get_readings_df(str(DB_PATH))
+    conn = get_connection(str(DB_PATH))
+    total_readings = conn.execute("SELECT COUNT(*) FROM sensor_readings").fetchone()[0]
     tickets = get_tickets_df(str(DB_PATH))
 
-    total_readings = len(readings)
     total_tickets = len(tickets)
     open_tickets = len(tickets[tickets["status"].isin(["open", "dispatched", "in_progress"])]) if not tickets.empty else 0
     dispatched_tickets = len(tickets[tickets["status"].isin(["dispatched", "in_progress"])]) if not tickets.empty else 0
     resolved_tickets = len(tickets[tickets["status"] == "resolved"]) if not tickets.empty else 0
-    monitored_zones = readings["zone_id"].nunique() if not readings.empty else len(ZONE_COLORS)
+    monitored_zones = len(ZONE_COLORS)
 
     water_loss = (
         float(tickets["estimated_water_loss_liters"].sum())

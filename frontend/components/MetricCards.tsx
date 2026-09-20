@@ -28,7 +28,7 @@ export function MetricCards({ metrics, healthSummary, loading }: MetricCardsProp
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Sensor Readings */}
-      <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
+      <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">Sensor Readings</span>
           <div className="h-8 w-8 rounded-lg bg-[#4D88C7]/15 border border-[#4D88C7]/30 flex items-center justify-center text-[#4D88C7]">
@@ -46,7 +46,7 @@ export function MetricCards({ metrics, healthSummary, loading }: MetricCardsProp
       </div>
 
       {/* 2. Flagged Anomaly Tickets */}
-      <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
+      <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">Flagged Tickets</span>
           <div className="h-8 w-8 rounded-lg bg-[#F38744]/15 border border-[#F38744]/30 flex items-center justify-center text-[#F38744]">
@@ -71,7 +71,7 @@ export function MetricCards({ metrics, healthSummary, loading }: MetricCardsProp
       </div>
 
       {/* 3. Facility Health Index (Upgraded from static Monitored Zones) */}
-      <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
+      <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">Facility Health Index</span>
           <div className="h-8 w-8 rounded-lg bg-[#2EB88A]/15 border border-[#2EB88A]/30 flex items-center justify-center text-[#2EB88A]">
@@ -89,7 +89,7 @@ export function MetricCards({ metrics, healthSummary, loading }: MetricCardsProp
       </div>
 
       {/* 4. Estimated Water Loss */}
-      <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
+      <div className="bg-[#0F141D] rounded-md p-4.5 transition-all shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">Estimated Water Loss</span>
           <div className="h-8 w-8 rounded-lg bg-[#4D88C7]/15 border border-[#4D88C7]/30 flex items-center justify-center text-[#4D88C7]">
