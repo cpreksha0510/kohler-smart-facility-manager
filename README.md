@@ -7,6 +7,13 @@
 
 ---
 
+## Demo Video
+
+Watch the 1-3 minute walkthrough here:  
+https://drive.google.com/file/d/16Xk0pKtHjQkwvdTcGfrMe5nFSJK2VV_I/view?usp=sharing
+
+---
+
 ## Architecture Overview
 
 The platform uses a decoupled industrial control-room architecture designed for high-throughput operational monitoring:
