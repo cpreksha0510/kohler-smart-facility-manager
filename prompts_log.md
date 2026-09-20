@@ -1,7 +1,12 @@
 # Prompts Log — KOHLER Smart Facility Manager
 
+## About This Log
+
+### AI Workflow & Attribution Note
+All technical requirements, engineering decisions, and prompt formulations documented in this log were developed through collaborative dialogue with Claude (Anthropic). These structured prompts and instructions were subsequently provided to Google Antigravity IDE for autonomous implementation, code refactoring, and automated verification. Antigravity IDE itself operates with Gemini 3.8 Flash and Claude Sonnet as its underlying models. This dual-AI workflow paired high-level systems design and domain problem-solving with agentic pair-programming, codebase refactoring, and multi-modal testing.
+
 > Running log of every prompt given to Antigravity during this project build.
-> Required submission artifact → will become the Prompts Documentation PDF.
+> Required submission artifact → Prompts Documentation.
 
 ---
 
