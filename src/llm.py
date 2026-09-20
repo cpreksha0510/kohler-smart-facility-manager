@@ -146,43 +146,37 @@ def get_copilot_model() -> Optional[Any]:
 
 
 def _deterministic_ticket_fallback(ticket: dict) -> str:
-    """Generate a precise deterministic 1-2 sentence explanation if API is unavailable."""
-    fixture_id = ticket.get("fixture_id", "Unknown fixture")
-    zone_id = ticket.get("zone_id", "Unknown zone")
-    label = ticket.get("severity_label", "Flagged")
+    """Generate a concise operational root-cause diagnosis without repeating UI metrics."""
     atype = ticket.get("anomaly_type", "anomaly")
-    avg_flow = float(ticket.get("avg_flow_lpm") or 0.0)
-    dur = int(ticket.get("duration_minutes") or 0)
-    water = float(ticket.get("estimated_water_loss_liters") or (avg_flow * dur))
-    base = float(ticket.get("avg_baseline_mean") or 0.0)
-
-    clean_zone = zone_id.replace("T2_", "").replace("_", " ")
+    fixture_id = ticket.get("fixture_id", "Fixture")
 
     if atype == "sustained_leak":
-        mult_str = f" ({avg_flow / base:.1f}x normal baseline)" if base > 0.05 else ""
         return (
-            f"Flagged as {label}: {fixture_id} in {clean_zone} showed sustained flow of "
-            f"{avg_flow:.2f} LPM{mult_str} for {dur} minutes with zero occupancy detected — "
-            f"consistent with an active plumbing leak."
+            f"Probable solenoid diaphragm failure or supply line rupture causing unseated flow. "
+            f"Immediate isolation of supply stop valve and cartridge inspection recommended."
         )
     elif atype == "slow_drip":
         return (
-            f"Flagged as {label}: {fixture_id} in {clean_zone} exhibited a persistent overnight "
-            f"creep averaging {avg_flow:.2f} LPM across {dur} minutes ({water:.1f} L cumulative loss) "
-            f"during zero occupancy — consistent with an internal valve or seal leak."
+            f"Persistent continuous creep indicates internal seal wear, cartridge debris, or flush valve seating failure. "
+            f"Inspect and reseat valve seals."
+        )
+    elif atype == "sensor_fault":
+        return (
+            f"Telemetry inconsistency detected against physical baselines. "
+            f"Perform sensor recalibration and verify optical flow transducer connection."
         )
     else:
         return (
-            f"Flagged as {label}: {fixture_id} in {clean_zone} registered anomalous {atype.replace('_', ' ')} "
-            f"for {dur} minutes ({water:.1f} L) during an unoccupied period."
+            f"Anomalous flow profile inconsistent with passenger usage. "
+            f"Dispatch technician to inspect physical valve assembly and check for obstruction."
         )
 
 
 def generate_ticket_explanation(ticket: dict) -> str:
     """
     Generate a 1-2 sentence plain-English operational explanation for a flagged ticket.
-    Enforces structured JSON output and incorporates 1-retry with backoff.
-    Falls back gracefully on any failure.
+    Focuses strictly on root-cause diagnosis and maintenance action, avoiding repetition
+    of metrics already visible in the UI telemetry row and evidence bars.
     """
     model = get_gemini_model()
     if model is None:
@@ -202,29 +196,25 @@ def generate_ticket_explanation(ticket: dict) -> str:
     cost_rs = ticket.get("estimated_cost_impact", 0.0)
     ts = ticket.get("timestamp_flagged", "")
 
-    prompt = f"""You are a commercial plumbing facility telemetry intelligence system for KOHLER commercial facilities.
-Generate an operational explanation for a maintenance ticket.
+    prompt = f"""You are a commercial plumbing intelligence system for KOHLER commercial facilities.
+Generate a concise root-cause diagnostic hypothesis and recommended maintenance action for an anomaly ticket.
 
-TICKET DATA:
-- Fixture: {fixture_id}
-- Zone: {zone_id}
+TICKET TELEMETRY CONTEXT (Already displayed in UI):
+- Fixture: {fixture_id} ({zone_id})
 - Anomaly Type: {anomaly_type}
 - Severity: {severity_label} (Score: {severity_score}/100)
-- Start Time: {ts}
-- Duration: {duration_min} minutes
-- Measured Flow: avg {avg_flow:.2f} LPM, peak {max_flow:.2f} LPM
-- Baseline Expected Flow: {base_flow:.2f} LPM
-- Occupancy: 0 (unoccupied throughout duration)
-- Estimated Water Loss: {water_l:.1f} Litres (Cost Impact: Rs. {cost_rs:.2f})
+- Measured Flow: avg {avg_flow:.2f} LPM, peak {max_flow:.2f} LPM vs {base_flow:.2f} LPM baseline
+- Duration: {duration_min} minutes during zero occupancy
+- Estimated Water Loss: {water_l:.1f} Litres
 
 REQUIREMENTS:
-1. Write exactly 1 to 2 sentences explaining why this was flagged.
-2. Reference the real telemetry numbers (duration, flow rate, baseline comparison, zero occupancy).
-3. Be professional, concise, and operational for a commercial facility manager.
+1. Write exactly 1 to 2 sentences focusing STRICTLY on the probable mechanical root cause and recommended technician action.
+2. DO NOT repeat numbers already visible in the UI (do NOT repeat duration in minutes, flow in LPM, liters lost, zone name, or severity labels).
+3. Focus on practical commercial plumbing diagnoses (e.g., solenoid diaphragm tear, worn cartridge seal, mineral scale preventing valve seating, stuck flapper).
 4. Output MUST be valid JSON with a single key "explanation".
 
 Example format:
-{{"explanation": "Flagged as High: Sink_01 in T2_Restroom_A showed flow 3.2x above normal baseline, sustained for 45 minutes with zero occupancy detected — consistent with an active leak."}}
+{{"explanation": "Probable internal solenoid valve failure or cartridge seal wear causing unseated flow during unoccupied hours. Dispatch technician to isolate supply stop valve and replace cartridge."}}
 """
 
     for attempt in range(LLM_MAX_RETRIES + 1):

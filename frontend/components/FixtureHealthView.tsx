@@ -437,21 +437,21 @@ export function FixtureHealthView({
                   </div>
                 </div>
 
-                {/* Sub-Metrics: Risk & Trend */}
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.06] text-xs">
+                {/* Sub-Metrics: Reliability Trend & Classification */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
                   <div>
-                    <span className="text-[#8B949E] block text-[11px]">Failure Risk</span>
-                    <span className="font-semibold text-white">
-                      {fixture.risk_score.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#8B949E] block text-[11px]">Trend</span>
+                    <span className="text-[#8B949E] block text-[11px]">Reliability Trend</span>
                     <span
                       className={`inline-flex items-center gap-1 text-[11px] font-semibold ${trendMeta.text}`}
                     >
                       <TrendIcon className="h-3 w-3" />
                       {trendMeta.label}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[#8B949E] block text-[11px]">Reliability Status</span>
+                    <span className="font-semibold text-white">
+                      {fixture.status}
                     </span>
                   </div>
                 </div>
@@ -548,8 +548,8 @@ export function FixtureHealthView({
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-[#8B949E] pt-1">
-                    <span>Failure Risk: <strong className="text-white">{selectedFixture.risk_score.toFixed(1)}%</strong></span>
-                    <span>Trend: <strong className="text-white">{selectedFixture.trend}</strong></span>
+                    <span>Condition: <strong className="text-white">{selectedFixture.status}</strong></span>
+                    <span>Operational Trend: <strong className="text-white">{selectedFixture.trend}</strong></span>
                   </div>
                 </div>
 

@@ -230,7 +230,7 @@ export default function DashboardPage() {
             )}
 
             {/* 1. Top-Level Metric Cards (4 cards) */}
-            <MetricCards metrics={activeMetrics} loading={loading} />
+            <MetricCards metrics={activeMetrics} healthSummary={healthSummary} loading={loading} />
 
             {/* 2. Flow Rate Telemetry Chart (Recharts) */}
             <FlowRateChart

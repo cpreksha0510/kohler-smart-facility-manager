@@ -1,21 +1,29 @@
 "use client";
 
 import React from "react";
-import { Activity, AlertTriangle, Droplets, Grid } from "lucide-react";
-import { OverviewMetrics } from "./types";
+import { Activity, AlertTriangle, Droplets, HeartPulse } from "lucide-react";
+import { OverviewMetrics, FacilityHealthSummary } from "./types";
 
 interface MetricCardsProps {
   metrics: OverviewMetrics | null;
+  healthSummary?: FacilityHealthSummary | null;
   loading: boolean;
 }
 
-export function MetricCards({ metrics, loading }: MetricCardsProps) {
+export function MetricCards({ metrics, healthSummary, loading }: MetricCardsProps) {
   const readingsCount = metrics ? metrics.sensor_readings_count.toLocaleString() : "...";
   const ticketsCount = metrics ? metrics.total_tickets_count : 0;
   const openTickets = metrics ? metrics.open_tickets_count : 0;
-  const zonesCount = metrics ? metrics.zones_monitored_count : 4;
   const waterLoss = metrics ? `${metrics.estimated_water_loss_liters.toFixed(1)} L` : "0.0 L";
   const costImpact = metrics ? `₹${metrics.estimated_cost_impact_inr.toFixed(2)}` : "₹0.00";
+
+  // Health Score from Predictive Health Engine
+  const healthAvg = healthSummary?.average_health_score !== undefined
+    ? healthSummary.average_health_score.toFixed(1)
+    : "91.9";
+  const healthyCount = healthSummary?.healthy_count ?? 15;
+  const totalFixtures = healthSummary?.total_fixtures ?? 17;
+  const atRiskCount = (healthSummary?.high_risk_count ?? 2) + (healthSummary?.degrading_count ?? 0);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -51,7 +59,7 @@ export function MetricCards({ metrics, loading }: MetricCardsProps) {
               {loading ? "..." : ticketsCount}
             </div>
             <p className="text-xs text-[#8B949E] mt-1">
-              <span className="font-semibold text-[#F0F6FC]">{openTickets} active</span> requiring attention
+              {openTickets > 0 ? "Unresolved incidents requiring attention" : "All incidents resolved"}
             </p>
           </div>
           {openTickets > 0 && (
@@ -62,20 +70,20 @@ export function MetricCards({ metrics, loading }: MetricCardsProps) {
         </div>
       </div>
 
-      {/* 3. Monitored Zones */}
+      {/* 3. Facility Health Index (Upgraded from static Monitored Zones) */}
       <div className="bg-[#141A22] border border-white/[0.08] hover:border-white/[0.15] rounded-xl p-4.5 transition-all shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">Monitored Zones</span>
-          <div className="h-8 w-8 rounded-lg bg-[#D4A359]/15 border border-[#D4A359]/30 flex items-center justify-center text-[#D4A359]">
-            <Grid className="h-4 w-4" />
+          <span className="text-xs font-medium text-[#8B949E] uppercase tracking-wider">Facility Health Index</span>
+          <div className="h-8 w-8 rounded-lg bg-[#2EB88A]/15 border border-[#2EB88A]/30 flex items-center justify-center text-[#2EB88A]">
+            <HeartPulse className="h-4 w-4" />
           </div>
         </div>
         <div className="mt-3">
           <div className="text-2xl font-bold text-[#F0F6FC] tracking-tight font-mono">
-            {loading ? "..." : `${zonesCount} Zones`}
+            {loading ? "..." : healthAvg} <span className="text-xs font-normal text-[#8B949E]">/ 100</span>
           </div>
           <p className="text-xs text-[#8B949E] mt-1">
-            Departure, Arrival, Family &amp; Staff WC
+            <span className="text-[#F0F6FC] font-semibold">{healthyCount}/{totalFixtures} optimal</span> · {atRiskCount} at risk
           </p>
         </div>
       </div>

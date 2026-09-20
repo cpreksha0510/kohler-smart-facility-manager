@@ -7,7 +7,6 @@ import {
   Activity,
   Clock,
   UserX,
-  Droplets,
   HelpCircle,
   Gauge,
   SlidersHorizontal,
@@ -82,7 +81,7 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
           </div>
         </div>
 
-        {/* Evidence Strength Badge (Section 4.4 — Transparent, No Fake Confidence %) */}
+        {/* Evidence Strength Badge */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-[#8B949E]">Evidence Strength:</span>
           <span
@@ -97,10 +96,10 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
         </div>
       </div>
 
-      {/* 2. Four Multi-Signal Evidence Bars (Section 4.3) */}
+      {/* 2. Four Multi-Signal Evidence Bars with Consolidated Telemetry */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-[#141A22] p-3 rounded-lg border border-white/[0.06]">
         {/* Flow Deviation */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
               <Activity className="h-3 w-3 text-[#4D88C7]" /> Flow Deviation
@@ -115,13 +114,13 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
               style={{ width: `${Math.min(100, Math.max(0, normalized_flow_deviation))}%` }}
             />
           </div>
-          <div className="text-[10px] text-[#8B949E]/70 font-mono">
-            +{flow_deviation_lpm.toFixed(2)} L/m above base
+          <div className="text-[10px] text-[#8B949E] font-mono leading-relaxed">
+            Observed {observed_flow_lpm.toFixed(2)} L/min vs expected {expected_flow_lpm.toFixed(2)} L/min baseline (+{flow_deviation_lpm.toFixed(2)} L/m above)
           </div>
         </div>
 
         {/* Duration */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
               <Clock className="h-3 w-3 text-[#D4A359]" /> Duration Span
@@ -136,13 +135,13 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
               style={{ width: `${Math.min(100, Math.max(0, normalized_duration))}%` }}
             />
           </div>
-          <div className="text-[10px] text-[#8B949E]/70 font-mono">
+          <div className="text-[10px] text-[#8B949E] font-mono leading-relaxed">
             {duration_minutes} min duration
           </div>
         </div>
 
         {/* Occupancy Mismatch */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
               <UserX className="h-3 w-3 text-[#F38744]" /> Occupancy Mismatch
@@ -157,13 +156,15 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
               style={{ width: `${Math.min(100, Math.max(0, normalized_occupancy_mismatch))}%` }}
             />
           </div>
-          <div className="text-[10px] text-[#8B949E]/70 font-mono">
-            {occupancy_mismatch === 1.0 ? "Zero occupancy (Flow + Vacant)" : "Normal presence"}
+          <div className="text-[10px] text-[#8B949E] font-mono leading-relaxed">
+            {occupancy_mismatch === 1.0 || occupancy_rate === 0.0
+              ? "Zero occupancy detected (flow present, room vacant)"
+              : `${Math.round(occupancy_rate * 100)}% occupancy detected (${Math.round(occupancy_mismatch * 100)}% mismatch)`}
           </div>
         </div>
 
         {/* Sensor Health */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[#8B949E] flex items-center gap-1">
               <Gauge className="h-3 w-3 text-[#2EB88A]" /> Sensor Diagnostic
@@ -178,57 +179,13 @@ export function EvidencePanel({ evidence }: EvidencePanelProps) {
               style={{ width: `${Math.min(100, Math.max(0, normalized_sensor_health))}%` }}
             />
           </div>
-          <div className="text-[10px] text-[#8B949E]/70 font-mono">
+          <div className="text-[10px] text-[#8B949E] font-mono leading-relaxed">
             Status: {sensor_health} (100% confidence)
           </div>
         </div>
       </div>
 
-      {/* 3. Physical Telemetry Facts Grid (Section 4.2) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
-          <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
-            Expected Baseline
-          </span>
-          <span className="font-mono font-semibold text-[#F0F6FC]">
-            {expected_flow_lpm.toFixed(2)} L/min
-          </span>
-        </div>
-
-        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
-          <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
-            Observed Flow
-          </span>
-          <span className="font-mono font-semibold text-[#F0F6FC]">
-            {observed_flow_lpm.toFixed(2)} L/min
-            {peak_flow_lpm > observed_flow_lpm && (
-              <span className="text-[10px] text-[#8B949E] font-normal ml-1">
-                (peak {peak_flow_lpm.toFixed(2)})
-              </span>
-            )}
-          </span>
-        </div>
-
-        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
-          <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
-            Active Occupancy
-          </span>
-          <span className="font-mono font-semibold text-[#F0F6FC]">
-            {occupancy_rate === 0.0 ? "0% (Unoccupied)" : `${Math.round(occupancy_rate * 100)}%`}
-          </span>
-        </div>
-
-        <div className="bg-[#141A22] p-2 rounded border border-white/[0.04]">
-          <span className="text-[10px] text-[#8B949E] block uppercase tracking-wider">
-            Total Water Lost
-          </span>
-          <span className="font-mono font-semibold text-[#F0F6FC]">
-            {estimated_water_loss_liters.toFixed(1)} Litres
-          </span>
-        </div>
-      </div>
-
-      {/* 4. Formula & Grounding Rationale Note */}
+      {/* 3. Formula & Grounding Rationale Note */}
       <div className="flex items-start gap-2 pt-1 text-[11px] text-[#8B949E]/80 bg-[#141A22]/50 p-2.5 rounded border border-white/[0.04]">
         <HelpCircle className="h-3.5 w-3.5 text-[#D4A359] shrink-0 mt-0.5" />
         <div className="space-y-0.5">
