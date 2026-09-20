@@ -1,24 +1,27 @@
 # KOHLER Smart Facility Monitor — Airport Restroom Operations
 
 > **Scenario:** Terminal 2 Restroom Block, International Airport  
-> **Telemetry:** 4 Zones · 17 Smart Fixtures · 48-Hour Continuous Sensor Stream (1-min cadence)  
+> **Telemetry:** 4 Zones · 17 Smart Fixtures · 7-Day / 168-Hour Continuous Sensor Stream (1-min cadence, 171,360 readings)  
 > **Backend Stack:** Python 3.10+ · FastAPI · Uvicorn · SQLite · Pandas · NumPy · Google Gemini API (`gemini-2.5-flash`)  
-> **Frontend Stack:** Next.js 15 (Turbopack) · React 19 · TypeScript · Tailwind CSS v4 · Recharts · Lucide Icons  
+> **Frontend Stack:** Next.js 16 (Turbopack) · React 19 · TypeScript 5 · Tailwind CSS v4 · Recharts 3.10 · Lucide Icons  
 
 ---
 
 ## Architecture Overview
 
-The platform uses a decoupled industrial control-room architecture:
-1. **Simulation & Ingestion Engine (`src/simulator.py`):** Generates 48 hours of 1-minute water-sensor telemetry (flow rate, occupancy, pressure, temperature, sensor health) across 17 smart fixtures in 4 airport zones with realistic diurnal traffic distributions and injected anomalies.
-2. **Deterministic 3-Pass Detection Engine (`src/detector.py`):** 
+The platform uses a decoupled industrial control-room architecture designed for high-throughput operational monitoring:
+
+1. **Simulation & Ingestion Engine (`src/simulator.py`):** Generates 7 days (168 hours) of 1-minute water-sensor telemetry (flow rate, occupancy, pressure, temperature, sensor health) across 17 smart fixtures in 4 airport zones with diurnal passenger distributions, airport peak waves, and realistic distributed anomalies (sustained leaks, slow drips, stuck flush valves, and sensor noise traps).
+2. **Deterministic 3-Pass Detection Engine (`src/detector.py`):**
    - *Pass 1:* Adaptive statistical baseline per `(fixture, hour_of_day)`.
    - *Pass 2:* Multi-signal correlation (zero occupancy validation, 10-min duration filter, sensor fault isolation, session coalescing).
    - *Pass 3:* Cumulative slow-drip scanner (0.25 LPM overnight drift detection).
-   - *Composite Severity Scorer:* Weighted composite ranking (`Critical`, `High`, `Medium`, `Low`) and municipal water loss cost quantification.
+   - *Composite Severity Scorer:* Weighted ranking (`Critical`, `High`, `Medium`, `Low`) and municipal water loss cost quantification.
 3. **AI Explainability & Copilot Layer (`src/llm.py`):** Google Gemini generates plain-English, telemetry-cited incident explanations for flagged tickets and powers the conversational **AI Facility Copilot**.
-4. **FastAPI REST Service (`src/api.py`):** Exposes high-performance REST endpoints for summary metrics, time-series telemetry, occupancy heatmaps, ticket status updates with resolution notes, and AI copilot queries.
-5. **Modern Next.js Frontend (`frontend/`):** Dark/brass executive command center with 4 KPI cards, Recharts flow telemetry, 24-hour occupancy heatmap, dedicated **Tickets Queue** with resolution notes modal, 60 FPS Replay Simulator, and slide-over AI Copilot drawer.
+4. **Fixture Health & Degradation Engine (`src/fixture_health.py`):** Computes per-fixture and facility-wide health scores (0–100) and historical degradation trends (`Deteriorating`, `Stable`, `Improving`) by evaluating recent vs. older anomaly frequency.
+5. **Sustainability & Conservation Engine (`src/sustainability.py`):** Tracks total water waste, water saved through timely resolution, avoided municipal utility costs (₹), 24-hour projected unresolved loss, and zone-level conservation metrics aligned with Kohler EPA WaterSense benchmarks.
+6. **FastAPI REST Service (`src/api.py`):** Exposes high-performance REST endpoints for summary metrics, downsampled time-series telemetry, occupancy heatmaps, ticket status updates with audit notes, fixture health degradation, sustainability summaries, and AI copilot queries.
+7. **Modern Next.js Frontend (`frontend/`):** Enterprise command center with a unified `#080808` background and `#101010` surfaces, 4 dedicated tabs (Dashboard, Tickets, Sustainability, Fixture Health), 60 FPS Replay Simulator with rolling window telemetry, and slide-over AI Copilot drawer.
 
 ---
 
@@ -29,7 +32,7 @@ Follow these steps in order to run both the Python backend and Next.js frontend 
 ### Prerequisites
 - **Python 3.10+** (with `pip`)
 - **Node.js 18+** (with `npm`)
-- *(Optional)* A Google Gemini API key (the system includes graceful deterministic fallbacks if no key is provided).
+- *(Optional)* A Google Gemini API key (the system includes deterministic fallbacks if no key is provided).
 
 ---
 
@@ -44,7 +47,7 @@ Create a `.env` file in the project root:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
-*(If you do not have a key, the system runs with deterministic fallback explanations).*
+*(If you do not have a key, the system runs with built-in deterministic fallback explanations).*
 
 ---
 
@@ -59,7 +62,7 @@ pip install -r requirements.txt
 ### Step 3: Generate Telemetry Data & Run Anomaly Detection
 
 ```bash
-# Generate 48 hours of sensor readings across 17 fixtures into SQLite (facility.db)
+# Generate 7 days (168 hours / 171,360 readings) across 17 fixtures into SQLite (facility.db)
 python src/simulator.py
 
 # Run the 3-pass multi-signal detector and generate LLM incident explanations
@@ -101,59 +104,77 @@ http://localhost:3000
 
 ## Platform Features Tour
 
-### 1. Executive Dashboard (`/`)
-- **4 Real-Time KPI Cards:** Sensor readings (48,960), active tickets requiring attention, monitored zones (4 zones), and cumulative water loss in liters with utility cost impact (₹).
-- **Flow Rate Telemetry (Recharts):** Aggregated Zone Totals and Per-Fixture Breakdown with distinct line styles (solid for sinks, dashed for toilets, dotted for urinals) and Sink_01 hero leak highlighting.
-- **Occupancy Heatmap Matrix:** 17 fixtures monitored across 24 hours displaying diurnal traffic density.
-- **Daily Operational Digest:** Summary of Low/Medium priority maintenance items.
+### 1. Executive Dashboard (`Dashboard` Tab)
+- **4 Real-Time KPI Cards:** Sensor Readings (171,360), Flagged Tickets, Facility Health Index (0–100), and Estimated Water Loss with utility cost impact (₹).
+- **Flow Rate Telemetry (Recharts):** Aggregated Zone Totals and Per-Fixture Breakdown with distinct line styles (solid for sinks, dashed for toilets, dotted for urinals) and active anomaly highlights.
+- **Occupancy Heatmap Matrix:** 17 fixtures monitored across 24 hours displaying diurnal traffic density with collapsible drawer.
 
-### 2. Dedicated Tickets Queue Tab
+### 2. Dedicated Tickets Tab (`Tickets` Tab)
 - **Strict Severity Hierarchy:** Active tickets (`Open` / `Dispatched`) sorted strictly by severity tier (`Critical` → `High` → `Medium` → `Low`), and within tier by most recently flagged.
-- **Status Progression:** One-click transition (`Open` → `Dispatched` → `Resolved`) persisted directly to SQLite.
-- **Audit Trail Resolution Notes:** Marking a ticket resolved prompts for an audit note with quick suggestion chips (*"Valve replaced"*, *"Sensor recalibrated"*, etc.).
-- **Resolved Tickets Section:** Collapsible audit log displaying past resolutions, technician notes, and reopen capability.
-- **AI Telemetry Explainability:** Responsive multi-line Google Gemini incident breakdown on every ticket.
+- **Status Progression Workflow:** One-click transitions (`Open` → `Dispatched` → `Resolved`) persisted directly to SQLite.
+- **Audit Trail Resolution Notes:** Marking a ticket resolved prompts for an audit note with quick suggestion chips (*"Valve replaced"*, *"False alarm — sensor recalibrated"*, *"Supply fitting tightened"*, *"Flapper seal cleaned and tested"*).
+- **Resolved Tickets History:** Collapsible audit log displaying past resolutions, technician notes, intervention impact, and reopen capability.
+- **AI Telemetry Explainability & Evidence Breakdown:** Plain-English Google Gemini incident breakdown with an interactive evidence panel displaying telemetry baseline vs. observed flow, duration, and confidence.
 
-### 3. Replay Simulator (60 FPS Client-Side Scrubbing)
-- 48-hour timeline scrubber slider with Play / Pause, Reset, and speed controls (`0.5x` to `8x`).
-- Complete 48-hour canvas with streaming telemetry lines advancing dynamically up to the scrubber position.
+### 3. Dedicated Sustainability Tab (`Sustainability` Tab)
+- **Water Conservation Impact:** Quantifies cumulative water waste, water saved through prompt maintenance interventions, and municipal utility cost avoidance (₹).
+- **Projected Unresolved Loss:** Projected 24-hour waste from currently open anomalies if left unaddressed.
+- **Zone Breakdown:** Water conservation metrics and loss attribution per airport terminal zone.
+- **Methodology Notice:** Grounded in standard municipal water rates (₹50 / kL) and Kohler commercial fixture baselines.
 
-### 4. Conversational AI Facility Copilot
+### 4. Dedicated Fixture Health Tab (`Fixture Health` Tab)
+- **Facility Health Score:** 0–100 health gauge reflecting operational status across all 17 fixtures.
+- **Status Tier Distribution:** Fixtures categorized into Optimal, Fair, and Needs Attention.
+- **7-Day Trend Analysis:** Identifies fixtures as `Deteriorating`, `Stable`, or `Improving` based on recent vs. historical anomaly frequency.
+- **Proactive Maintenance Actions:** Plain-English maintenance guidance for high-risk fixtures before catastrophic failures occur.
+
+### 5. Replay Simulator (60 FPS Interactive Scrubbing)
+- **168-Hour Timeline Scrubber:** Full 7-day timeline slider (`0h` to `168h`) with Play / Pause, Reset (`00:00`), Speed multipliers (`0.5x` to `8x`), and live Replay Clock.
+- **Rolling Window Telemetry:** Zooms in on a readable recent window (`2h`, `4h`, `6h`) that smoothly auto-scrolls forward with the playback position.
+- **Unified REPLAY JUMP Day Selector:** Single `D1` through `D7` selector toolbar that synchronizes playback position, scrubber position, and the rolling window chart simultaneously.
+- **Dynamic Y-Axis Auto-Scaling:** Automatically adjusts chart scale (e.g. 0–2 L/min during quiet nocturnal hours to reveal micro-drips, expanding to 0–14 L/min during daytime peak waves).
+
+### 6. Conversational AI Facility Copilot
 - Slide-over sheet drawer powered by Google Gemini connected to live SQLite telemetry.
-- Ask natural-language operational questions (e.g., *"Which fixture has the worst water waste right now?"*) for instant data-backed maintenance recommendations.
+- Ask natural-language operational questions (e.g., *"Which fixture has the worst water waste right now?"*, *"What maintenance should I prioritize today?"*) for instant data-backed recommendations.
 
 ---
 
 ## Project Structure
 
 ```
-├── facility_manager_prd.md   ← Full product specification
-├── prompts_log.md            ← Comprehensive prompt-by-prompt build history
-├── README.md                 ← This file
-├── requirements.txt          ← Python backend dependencies
-├── facility.db               ← SQLite database (telemetry, tickets, digests)
+├── facility_manager_prd.md       ← Full product specification
+├── prompts_log.md                ← Comprehensive prompt-by-prompt build history
+├── README.md                     ← Project documentation & setup guide
+├── requirements.txt              ← Python backend dependencies
+├── facility.db                   ← SQLite database (telemetry, tickets, digests)
 ├── src/
-│   ├── api.py                ← FastAPI REST API server
-│   ├── config.py             ← Constants: zones, fixtures, costs, thresholds
-│   ├── database.py           ← SQLite schema migrations & query helpers
-│   ├── detector.py           ← 3-pass multi-signal anomaly detector
-│   ├── llm.py                ← Google Gemini explainability & copilot service
-│   ├── simulator.py          ← 48-hour telemetry generator & anomaly injector
-│   └── icons.py              ← SVG outline icon definitions
-└── frontend/                 ← Next.js 15 Web Application
-    ├── package.json          ← Node.js dependencies
-    ├── next.config.ts        ← API rewrites proxying to FastAPI (:8000)
+│   ├── api.py                    ← FastAPI REST API server
+│   ├── config.py                 ← Constants: zones, fixtures, costs, thresholds
+│   ├── database.py               ← SQLite schema migrations & query helpers
+│   ├── detector.py               ← 3-pass multi-signal anomaly detector
+│   ├── explainability.py         ← Telemetry-cited incident evidence builder
+│   ├── fixture_health.py         ← Fixture health scoring & degradation trends
+│   ├── llm.py                    ← Google Gemini explainability & copilot service
+│   ├── simulator.py              ← 7-day telemetry generator & anomaly injector
+│   └── sustainability.py         ← Water conservation & financial loss engine
+└── frontend/                     ← Next.js 16 Web Application
+    ├── package.json              ← Node.js dependencies
+    ├── next.config.ts            ← API rewrites proxying to FastAPI (:8000)
     ├── app/
-    │   ├── page.tsx          ← Main dashboard & tab controller
-    │   └── layout.tsx        ← Root layout & styling
+    │   ├── page.tsx              ← Main dashboard, tab routing & state manager
+    │   ├── layout.tsx            ← Root layout & Geist font styling
+    │   └── globals.css           ← Centralized #080808 / #101010 theme tokens
     └── components/
-        ├── Header.tsx         ← Brand lockup, tab navigation & mode toggle
-        ├── MetricCards.tsx    ← Glassmorphic KPI metric summary cards
-        ├── FlowRateChart.tsx  ← Recharts flow telemetry with 48h replay canvas
-        ├── OccupancyHeatmap.tsx ← 24-hour occupancy matrix
-        ├── TicketsView.tsx    ← Dedicated Tickets Queue with resolution modal
-        ├── TicketsTable.tsx   ← Dashboard ticket table preview
-        ├── DailyDigestCard.tsx← Operational daily digest
-        ├── ReplayScrubber.tsx ← 60 FPS timeline scrubber & clock
-        └── AiCopilotDrawer.tsx← Conversational Gemini AI drawer
+        ├── Header.tsx            ← Brand lockup, tab navigation & mode toggle
+        ├── MetricCards.tsx       ← Glassmorphic KPI metric summary cards
+        ├── FlowRateChart.tsx     ← Rolling window & full timeline Recharts canvas
+        ├── OccupancyHeatmap.tsx  ← 24-hour occupancy matrix with accordion
+        ├── TicketsView.tsx       ← Dedicated Tickets tab with resolution modal
+        ├── EvidencePanel.tsx     ← Telemetry evidence breakdown panel
+        ├── SustainabilityPanel.tsx ← Dedicated Sustainability & Conservation tab
+        ├── FixtureHealthView.tsx ← Dedicated Fixture Health & Degradation tab
+        ├── ReplayScrubber.tsx    ← 60 FPS timeline scrubber & clock
+        ├── AiCopilotDrawer.tsx   ← Conversational Gemini AI drawer
+        └── types.ts              ← Shared TypeScript data interfaces
 ```

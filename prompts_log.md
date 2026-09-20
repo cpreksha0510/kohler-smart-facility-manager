@@ -1475,6 +1475,61 @@ Added `--preview` flag for 6h/3-fixture sanity check before committing to full r
 
 **Files changed:** `frontend/app/page.tsx`, `prompts_log.md`.
 
+---
+
+### Prompt 49 — Final Repository Cleanup Pass & Modernization
+**Date:** 2026-09-20  
+**Prompt given:**
+> Please proceed with the full cleanup as proposed:
+> 1. Delete Group 1 files: src/dashboard.py, src/icons.py, .streamlit/config.toml, and the now-empty .streamlit/ directory
+> 2. Delete Group 2 files: frontend/components/TicketsTable.tsx, frontend/components/DailyDigestCard.tsx, and the entire scratch/ directory
+> 3. Remove clsx and tailwind-merge from frontend/package.json
+> 4. Apply the updated README.md exactly as outlined
+> 
+> After all changes, do a final sanity check: restart the application fresh (backend + frontend) and confirm everything still runs correctly with no broken imports or missing references from the deletions.
+> 
+> Show me confirmation once done, and flag immediately if anything breaks after the cleanup so we can address it before committing.
+
+**What was done:**
+- **Group 1 Removals (Streamlit-Specific Legacy Files):**
+  - Removed `src/dashboard.py` (legacy Streamlit dashboard).
+  - Removed `src/icons.py` (Streamlit-specific SVG helper).
+  - Removed `.streamlit/config.toml` and deleted the `.streamlit/` directory.
+- **Group 2 Removals (Unused Prototypes & Scratch Tests):**
+  - Removed `frontend/components/TicketsTable.tsx` (superseded by `TicketsView.tsx`).
+  - Removed `frontend/components/DailyDigestCard.tsx` (unmounted early prototype).
+  - Removed `scratch/` directory and its 8 exploratory testing scripts.
+- **Dependencies Cleaned (`frontend/package.json`):**
+  - Removed unused packages `clsx` and `tailwind-merge` from `dependencies`.
+- **Documentation Updated (`README.md`):**
+  - Updated scenario metadata to reflect 7-day / 168-hour continuous simulation (171,360 readings).
+  - Updated technology stack to Next.js 16 (Turbopack), React 19, TypeScript 5, Tailwind CSS v4, Recharts, and Google Gemini.
+  - Documented dedicated tabs: Dashboard, Tickets, Sustainability, and Fixture Health.
+  - Updated Replay Simulator documentation to include 168-hour scrubber, rolling window (2h/4h/6h), and unified REPLAY JUMP day selector.
+  - Synchronized repository directory tree with actual active files.
+- **Verification & Sanity Check:**
+  - TypeScript checked cleanly with 0 errors (`npx tsc --noEmit`).
+  - Python module imports verified across all backend services (`src.api`, `src.config`, `src.database`, `src.detector`, `src.explainability`, `src.fixture_health`, `src.llm`, `src.simulator`, `src.sustainability`).
+  - Fresh restart of both FastAPI backend (`http://127.0.0.1:8000`) and Next.js frontend (`http://localhost:3000`).
+  - All REST endpoints (`/api/overview`, `/api/tickets`, `/api/fixture-health`, `/api/sustainability/summary`) and frontend returned HTTP 200 with live telemetry.
+
+**Files changed:** `src/dashboard.py` (deleted), `src/icons.py` (deleted), `.streamlit/config.toml` (deleted), `frontend/components/TicketsTable.tsx` (deleted), `frontend/components/DailyDigestCard.tsx` (deleted), `scratch/` (deleted), `frontend/package.json`, `README.md`, `prompts_log.md`.
+
+---
+
+### Prompt 50 — Remove Review Working Document (`project_summary_for_review.md`)
+**Date:** 2026-09-20  
+**Prompt given:**
+> Please remove project_summary_for_review.md from the repository — it was a working file for external review and isn't part of the actual project deliverable. Delete the file entirely (not just untrack it).
+> 
+> Keep facility_manager_prd.md and KOHLER_Track2_Feature_Implementation_Plan.md as-is — these are legitimate planning documentation and should remain.
+
+**What was done:**
+- Deleted `project_summary_for_review.md` entirely from disk and staged the removal in git.
+- Verified that official planning and specification documents `facility_manager_prd.md` and `KOHLER_Track2_Feature_Implementation_Plan.md` remain intact in the project root.
+
+**Files changed:** `project_summary_for_review.md` (deleted), `prompts_log.md`.
+
 
 
 
