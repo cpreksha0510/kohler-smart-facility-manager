@@ -4,7 +4,6 @@ import React, { useState, useMemo } from "react";
 import {
   AlertTriangle,
   AlertCircle,
-  Clock,
   CheckCircle2,
   Wrench,
   Sparkles,
@@ -319,7 +318,7 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                   </div>
 
                   {/* Telemetry Numbers Row */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 py-3 text-xs">
                     <div>
                       <span className="text-[#8B949E] block text-[10px] uppercase">Flagged At</span>
                       <span className="font-mono text-[#F0F6FC]">{t.timestamp_flagged_str}</span>
@@ -348,59 +347,16 @@ export function TicketsView({ tickets, onStatusChange, loading }: TicketsViewPro
                       <span className="text-[#8B949E] block text-[10px] uppercase">Municipal Cost Impact</span>
                       <span className="font-mono text-white font-bold">₹{t.estimated_cost_impact?.toFixed(2)}</span>
                     </div>
-                  </div>
-
-                  {/* Feature 2: Unresolved Runaway Waste Projection (Consistent Horizon Cards) */}
-                  {t.sustainability?.projections && (
-                    <div className="mt-2.5 p-2.5 bg-[#0D1117] rounded-lg border border-white/[0.04] text-xs">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] text-[#8B949E] uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                          <Clock className="h-3 w-3 text-[#8B949E]" /> If Left Unresolved (Runaway Waste Horizon)
-                        </span>
-                        <span className="text-[10px] text-[#8B949E] font-mono">
-                          Flow: {t.evidence?.observed_flow_lpm.toFixed(2)} L/m
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
-                          <span className="text-[10px] text-[#8B949E] block">+1 Hour</span>
-                          <span className="font-mono text-white font-semibold">
-                            {t.sustainability.projections["1h"].projected_loss_liters} L
-                          </span>
-                          <span className="text-[9px] text-[#8B949E] block">
-                            ₹{t.sustainability.projections["1h"].projected_cost_inr.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
-                          <span className="text-[10px] text-[#8B949E] block">+6 Hours</span>
-                          <span className="font-mono text-white font-semibold">
-                            {t.sustainability.projections["6h"].projected_loss_liters} L
-                          </span>
-                          <span className="text-[9px] text-[#8B949E] block">
-                            ₹{t.sustainability.projections["6h"].projected_cost_inr.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
-                          <span className="text-[10px] text-[#8B949E] block">+24 Hours</span>
-                          <span className="font-mono text-white font-semibold">
-                            {t.sustainability.projections["24h"].projected_loss_liters.toLocaleString()} L
-                          </span>
-                          <span className="text-[9px] text-[#8B949E] block">
-                            ₹{t.sustainability.projections["24h"].projected_cost_inr.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="bg-white/[0.02] p-1.5 rounded border border-white/[0.03]">
-                          <span className="text-[10px] text-[#8B949E] block">+7 Days</span>
-                          <span className="font-mono text-white font-semibold">
-                            {t.sustainability.projections["7d"].projected_loss_liters.toLocaleString()} L
-                          </span>
-                          <span className="text-[9px] text-[#8B949E] block">
-                            ₹{t.sustainability.projections["7d"].projected_cost_inr.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
+                    <div>
+                      <span className="text-[#8B949E] block text-[10px] uppercase">If Unresolved (24h)</span>
+                      <span className="font-mono text-white font-bold">
+                        {(t.sustainability?.projections?.["24h"]?.projected_loss_liters ?? Math.round(((t.evidence?.observed_flow_lpm ?? 0) * 1440) * 10) / 10).toLocaleString()} L
+                      </span>
+                      <span className="text-[10px] text-[#8B949E] block font-mono">
+                        ₹{(t.sustainability?.projections?.["24h"]?.projected_cost_inr ?? Math.round(((t.evidence?.observed_flow_lpm ?? 0) * 1440 * 0.05) * 100) / 100).toFixed(2)}
+                      </span>
                     </div>
-                  )}
+                  </div>
 
                   {/* AI Analysis Explanation Sub-card */}
                   {t.explanation && (
