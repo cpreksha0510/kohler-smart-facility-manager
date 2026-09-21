@@ -1,4 +1,4 @@
-# KOHLER Smart Facility Monitor — Airport Restroom Operations
+# Smart Facility & Sustainability Manager — Airport Restroom Operations
 
 > **Scenario:** Terminal 2 Restroom Block, International Airport  
 > **Telemetry:** 4 Zones · 17 Smart Fixtures · 7-Day / 168-Hour Continuous Sensor Stream (1-min cadence, 171,360 readings)  
@@ -46,8 +46,8 @@ Follow these steps in order to run both the Python backend and Next.js frontend 
 ### Step 1: Clone and Set Up Environment Variables
 
 ```bash
-git clone <repo-url>
-cd "kohler case study"
+git clone https://github.com/cpreksha0510/smart-facility-sustainability-manager.git
+cd smart-facility-sustainability-manager
 ```
 
 Create a `.env` file in the project root:
